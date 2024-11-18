@@ -98,11 +98,13 @@ cd s3-failure-flags-app
 
 ## Deploying to Kubernetes with Gremlin Sidecar
 
-To integrate with Gremlin Failure Flags, add the **Gremlin Sidecar** to your Kubernetes deployment.
+To integrate with Gremlin Failure Flags, add the **Gremlin Sidecar** to your Kubernetes deployment. You can authenticate the sidecar using either certificates or a shared secret.
 
 ### 1. Create a Secret for Gremlin Credentials
 
-Create a Kubernetes secret for your Gremlin Team credentials:
+#### Method 1: Using Certificates
+
+Create a Kubernetes secret for your Gremlin Team credentials (Certificates):
 
 ```yaml
 apiVersion: v1
@@ -122,6 +124,27 @@ Replace `<BASE64_ENCODED_TEAM_ID>`, `<BASE64_ENCODED_TEAM_CERTIFICATE>`, and `<B
 echo -n "your_value_here" | base64
 ```
 
+#### Method 2: Using Shared Secret
+
+Create a Kubernetes secret for your Gremlin Team credentials (Shared Secret):
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gremlin-team-secret
+type: Opaque
+data:
+  GREMLIN_TEAM_ID: <BASE64_ENCODED_TEAM_ID>
+  GREMLIN_TEAM_SECRET: <BASE64_ENCODED_TEAM_SECRET>
+```
+
+Replace `<BASE64_ENCODED_TEAM_ID>` and `<BASE64_ENCODED_TEAM_SECRET>` with your Base64-encoded team ID and shared secret. Use the following command to generate Base64-encoded values:
+
+```bash
+echo -n "your_value_here" | base64
+```
+
 Apply the secret to your cluster:
 
 ```bash
@@ -130,7 +153,9 @@ kubectl apply -f gremlin-team-secret.yaml
 
 ### 2. Update Deployment with the Sidecar
 
-Update your `deployment.yaml` to include the Gremlin Sidecar:
+Update your `deployment.yaml` to include the Gremlin Sidecar. Below are examples for both authentication methods.
+
+#### Example Deployment with Certificates
 
 ```yaml
 apiVersion: apps/v1
@@ -180,6 +205,59 @@ spec:
                 secretKeyRef:
                   name: gremlin-team-secret
                   key: team_private_key
+            - name: GREMLIN_DEBUG
+              value: "true"
+            - name: SERVICE_NAME
+              value: "s3-failure-flags-app"
+            - name: REGION
+              value: "us-east-1"
+```
+
+#### Example Deployment with Shared Secret
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3-failure-flags-app
+  labels:
+    app: s3-failure-flags-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s3-failure-flags-app
+  template:
+    metadata:
+      labels:
+        app: s3-failure-flags-app
+    spec:
+      containers:
+        - name: app-container
+          image: <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: FAILURE_FLAGS_ENABLED
+              value: "true"
+            - name: S3_BUCKET
+              value: "<YOUR_S3_BUCKET_NAME>"
+        - name: gremlin-sidecar
+          image: gremlin/failure-flags-sidecar:latest
+          imagePullPolicy: Always
+          env:
+            - name: GREMLIN_SIDECAR_ENABLED
+              value: "true"
+            - name: GREMLIN_TEAM_ID
+              valueFrom:
+                secretKeyRef:
+                  name: gremlin-team-secret
+                  key: GREMLIN_TEAM_ID
+            - name: GREMLIN_TEAM_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gremlin-team-secret
+                  key: GREMLIN_TEAM_SECRET
             - name: GREMLIN_DEBUG
               value: "true"
             - name: SERVICE_NAME
@@ -341,5 +419,4 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
-```
+This project is licensed under the Apache License 2.0. See the [`LICENSE`](LICENSE) file for details.
