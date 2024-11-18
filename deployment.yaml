@@ -2,8 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: s3-failure-flags-app
+  labels:
+    app: s3-failure-flags-app
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: s3-failure-flags-app
@@ -13,13 +15,41 @@ spec:
         app: s3-failure-flags-app
     spec:
       containers:
-      - name: s3-failure-flags-app
-        image: your-docker-repo/s3-failure-flags-app:latest
-        ports:
-        - containerPort: 5000
-        env:
-        - name: S3_BUCKET
-          value: "your-bucket-name"
-        - name: FAILURE_FLAGS_ENABLED
-          value: "true"
-
+        - name: app-container
+          image: <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: S3_BUCKET
+              value: "commoncrawl"
+            - name: FAILURE_FLAGS_ENABLED
+              value: "true"
+        - name: gremlin-sidecar
+          image: gremlin/failure-flags-sidecar:latest
+          imagePullPolicy: Always
+          env:
+            - name: GREMLIN_SIDECAR_ENABLED
+              value: "true"
+            - name: GREMLIN_TEAM_ID
+              valueFrom:
+                secretKeyRef:
+                  name: gremlin-team-secret
+                  key: team_id
+            - name: GREMLIN_TEAM_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: gremlin-team-secret
+                  key: team_certificate
+            - name: GREMLIN_TEAM_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gremlin-team-secret
+                  key: team_private_key
+            - name: GREMLIN_DEBUG
+              value: "true"
+            - name: SERVICE_NAME
+              value: "s3-failure-flags-app"
+            - name: REGION
+              value: "us-east-1"
+            - name: FAILURE_FLAGS_ENABLED
+              value: "true"
