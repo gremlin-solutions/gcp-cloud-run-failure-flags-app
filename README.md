@@ -48,15 +48,17 @@ cd s3-failure-flags-app
    pip install -r requirements.txt
    ```
 
-3. **Set the required environment variable:**
+3. **Set the required environment variables:**
 
    ```bash
    export S3_BUCKET=commoncrawl
+   export FAILURE_FLAGS_ENABLED=true
    ```
 
-   **Environment Variable Explained:**
+   **Environment Variables Explained:**
 
    - `S3_BUCKET`: Specifies the name of the S3 bucket to access. Default is `commoncrawl`, a publicly accessible bucket.
+   - `FAILURE_FLAGS_ENABLED`: Enables the failure flags functionality. Set to `true` to activate fault injection capabilities.
 
    **Note:** The `commoncrawl` bucket is a public bucket provided by [Common Crawl](https://commoncrawl.org/the-data/get-started/). It contains a vast repository of web crawl data that is publicly accessible.
 
@@ -78,9 +80,9 @@ cd s3-failure-flags-app
    deactivate
    ```
 
-### Docker Build and Run
+### Docker Build and Push
 
-To ensure seamless integration with the Gremlin API and proper configuration of environment variables, follow the steps below.
+To prepare the Docker image for deployment to Kubernetes, follow the steps below.
 
 #### 1. Build the Docker Image
 
@@ -90,92 +92,15 @@ docker build -t <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest .
 
 Replace `<YOUR_DOCKER_REPO>` with your actual Docker repository path.
 
-#### 2. Prepare Gremlin Credentials
-
-Ensure you have your Gremlin certificate-based credentials ready. You will need the following:
-
-- **Team ID**
-- **Team Certificate**
-- **Team Private Key**
-
-These credentials should be base64-encoded before being used as environment variables.
-
-**Encode Your Credentials:**
-
-```bash
-echo -n "your_team_id_here" | base64
-echo -n "your_team_certificate_here" | base64
-echo -n "your_team_private_key_here" | base64
-```
-
-Replace `"your_team_id_here"`, `"your_team_certificate_here"`, and `"your_team_private_key_here"` with your actual Gremlin credentials.
-
-#### 3. Run the Docker Container with Required Environment Variables
-
-Use the following command to run the Docker container with all necessary environment variables:
-
-```bash
-docker run \
-  -e S3_BUCKET=commoncrawl \
-  -e GREMLIN_SIDECAR_ENABLED=true \
-  -e GREMLIN_TEAM_ID=<BASE64_ENCODED_TEAM_ID> \
-  -e GREMLIN_TEAM_CERTIFICATE=<BASE64_ENCODED_TEAM_CERTIFICATE> \
-  -e GREMLIN_TEAM_PRIVATE_KEY=<BASE64_ENCODED_TEAM_PRIVATE_KEY> \
-  -e GREMLIN_DEBUG=true \
-  -e SERVICE_NAME=s3-failure-flags-app \
-  -e REGION=us-east-1 \
-  -p 8080:8080 \
-  <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
-```
-
-**Environment Variables Explained:**
-
-- `S3_BUCKET`: Specifies the S3 bucket to access. Default is `commoncrawl`.
-- `GREMLIN_SIDECAR_ENABLED`: Enables the Gremlin Sidecar. Set to `true`.
-- `GREMLIN_TEAM_ID`: Your Gremlin Team ID (Base64 encoded).
-- `GREMLIN_TEAM_CERTIFICATE`: Your Gremlin Team Certificate (Base64 encoded).
-- `GREMLIN_TEAM_PRIVATE_KEY`: Your Gremlin Team Private Key (Base64 encoded).
-- `GREMLIN_DEBUG`: Enables debug logging for Gremlin Sidecar. Set to `true`.
-- `SERVICE_NAME`: Name of your service; should match the name used in your Failure Flags experiments.
-- `REGION`: The AWS region where your service is running. Example: `us-east-1`.
-
-**Example with Encoded Credentials:**
-
-```bash
-docker run \
-  -e S3_BUCKET=commoncrawl \
-  -e GREMLIN_SIDECAR_ENABLED=true \
-  -e GREMLIN_TEAM_ID=Y29tLmdlcm1saW4tdGVhbS1pZA== \
-  -e GREMLIN_TEAM_CERTIFICATE=LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCg== \
-  -e GREMLIN_TEAM_PRIVATE_KEY=LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQo= \
-  -e GREMLIN_DEBUG=true \
-  -e SERVICE_NAME=s3-failure-flags-app \
-  -e REGION=us-east-1 \
-  -p 8080:8080 \
-  <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
-```
-
-**Security Note:** Avoid hardcoding sensitive credentials directly into scripts or commands. Consider using Docker secrets or environment variable files (`.env`) to manage sensitive information securely.
-
-#### 4. Access the Application
-
-Once the Docker container is running, open your browser and navigate to:
-
-```
-http://localhost:8080
-```
-
-The application should be fully functional and integrated with the Gremlin API, ready to accept and handle fault injection experiments.
-
-#### 5. Push the Image to a Docker Repository (Optional)
-
-If you wish to store your Docker image in a repository for later use or deployment, execute:
+#### 2. Push the Docker Image to Your Repository
 
 ```bash
 docker push <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
 ```
 
 Replace `<YOUR_DOCKER_REPO>` with your actual Docker repository path.
+
+**Security Note:** Ensure that your Docker repository is secure and that only authorized personnel have access to push or pull images.
 
 ---
 
@@ -260,6 +185,8 @@ spec:
           env:
             - name: S3_BUCKET
               value: "commoncrawl"
+            - name: FAILURE_FLAGS_ENABLED
+              value: "true"
         - name: gremlin-sidecar
           image: gremlin/failure-flags-sidecar:latest
           imagePullPolicy: Always
@@ -287,12 +214,22 @@ spec:
               value: "s3-failure-flags-app"
             - name: REGION
               value: "us-east-1"
+            - name: FAILURE_FLAGS_ENABLED
+              value: "true"
 ```
 
 **Note:**
 
 - Ensure that the environment variable keys in `secretKeyRef` match the keys defined in your Kubernetes secret.
-- The `GREMLIN_SIDECAR_ENABLED`, `GREMLIN_DEBUG`, `SERVICE_NAME`, and `REGION` environment variables are required for the Gremlin Sidecar to function properly.
+- The following environment variables are required for the Gremlin Sidecar to function properly:
+  - `GREMLIN_SIDECAR_ENABLED`
+  - `GREMLIN_TEAM_ID`
+  - `GREMLIN_TEAM_CERTIFICATE`
+  - `GREMLIN_TEAM_PRIVATE_KEY`
+  - `GREMLIN_DEBUG`
+  - `SERVICE_NAME`
+  - `REGION`
+  - `FAILURE_FLAGS_ENABLED`
 
 ### 3. Apply the Deployment
 
@@ -510,4 +447,3 @@ The application validates all responses from external services to ensure robustn
 ## License
 
 This project is licensed under the Apache License 2.0. See the [`LICENSE`](LICENSE) file for details.
-
