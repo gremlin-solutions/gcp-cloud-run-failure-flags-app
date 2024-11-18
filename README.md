@@ -1,8 +1,3 @@
-Certainly! Here's the updated `README.md` with detailed explanations for each fault injection example, similar to the explanation provided for the `EndpointConnectionError`.
-
----
-
-```markdown
 # S3 Failure Flags App
 
 This application demonstrates fault injection using Gremlin Failure Flags in a Flask-based S3 file lister.
