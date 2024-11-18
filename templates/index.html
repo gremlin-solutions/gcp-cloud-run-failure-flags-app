@@ -1,16 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>S3 Bucket Contents</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e2f; /* Gremlin dark background */
+            color: #e4e4f0; /* Light text color */
+        }
+        header {
+            background-color: #7d4cff; /* Gremlin purple */
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+        header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 300;
+        }
+        main {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background-color: #2e2e45; /* Slightly lighter than background */
+            margin: 0.5rem 0;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        li:hover {
+            transform: scale(1.02);
+        }
+        li span {
+            font-weight: bold;
+            color: #7d4cff; /* Gremlin purple */
+        }
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            background-color: #7d4cff; /* Gremlin purple */
+            color: white;
+            margin-top: 2rem;
+        }
+        footer a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <h1>S3 Bucket: {{ bucket }}</h1>
-    <h2>Path: /{{ path }}</h2>
+    <header>
+        <h1>S3 Bucket: {{ bucket }}</h1>
+        <h2>Listing Files and Directories in Path: /{{ path }}</h2>
+    </header>
+    <main>
     <ul>
         {% for obj in objects %}
-        <li>{{ obj.Key }} ({{ obj.Size }} bytes)</li>
+        <li>
+            <span>{{ obj.Key }}</span> - {{ obj.Size }}
+        </li>
         {% endfor %}
     </ul>
+    </main>
+    <footer>
+        Powered by <a href="https://www.gremlin.com" target="_blank">Gremlin</a>
+    </footer>
 </body>
 </html>
 

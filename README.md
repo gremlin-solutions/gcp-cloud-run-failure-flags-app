@@ -1,3 +1,8 @@
+Certainly! Here's the updated `README.md` with detailed explanations for each fault injection example, similar to the explanation provided for the `EndpointConnectionError`.
+
+---
+
+```markdown
 # S3 Failure Flags App
 
 This application demonstrates fault injection using Gremlin Failure Flags in a Flask-based S3 file lister.
@@ -6,7 +11,7 @@ This application demonstrates fault injection using Gremlin Failure Flags in a F
 
 - Lists the contents of an S3 bucket.
 - Simulates faults such as:
-  - AWS S3 exceptions (`NoCredentialsError`, `ClientError`).
+  - AWS S3 exceptions (`NoCredentialsError`, `ClientError`, `EndpointConnectionError`).
   - Configurable latency-based failures using Gremlin's latency effect.
 - Configurable via environment variables.
 - Includes integration with the Gremlin Failure Flags Sidecar for advanced chaos engineering experiments.
@@ -30,39 +35,39 @@ cd s3-failure-flags-app
 
 ### Local Development
 
-1. Create and activate a virtual environment:
+1. **Create and activate a virtual environment:**
 
    ```bash
    python3 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-2. Install dependencies in the virtual environment:
+2. **Install dependencies in the virtual environment:**
 
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Set the required environment variables:
+3. **Set the required environment variables:**
 
    ```bash
    export S3_BUCKET=<YOUR_S3_BUCKET_NAME>
    export FAILURE_FLAGS_ENABLED=true
    ```
 
-4. Run the application:
+4. **Run the application:**
 
    ```bash
    python app.py
    ```
 
-5. Open your browser and navigate to:
+5. **Open your browser and navigate to:**
 
-   ```bash
+   ```
    http://127.0.0.1:8080
    ```
 
-6. Deactivate the virtual environment when done:
+6. **Deactivate the virtual environment when done:**
 
    ```bash
    deactivate
@@ -70,25 +75,25 @@ cd s3-failure-flags-app
 
 ### Docker Build and Run
 
-1. Build the Docker image:
+1. **Build the Docker image:**
 
    ```bash
    docker build -t <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest .
    ```
 
-2. Run the Docker container:
+2. **Run the Docker container:**
 
    ```bash
    docker run -e S3_BUCKET=<YOUR_S3_BUCKET_NAME> -e FAILURE_FLAGS_ENABLED=true -p 8080:8080 <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
    ```
 
-3. Access the application at:
+3. **Access the application at:**
 
-   ```bash
+   ```
    http://localhost:8080
    ```
 
-4. Push the image to a Docker repository (optional):
+4. **Push the image to a Docker repository (optional):**
 
    ```bash
    docker push <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
@@ -113,10 +118,10 @@ type: Opaque
 data:
   team_id: <BASE64_ENCODED_TEAM_ID>
   team_certificate: <BASE64_ENCODED_TEAM_CERTIFICATE>
-  team_private_key: <BASE64_ENCODED_PRIVATE_KEY>
+  team_private_key: <BASE64_ENCODED_TEAM_PRIVATE_KEY>
 ```
 
-Replace `<BASE64_ENCODED_TEAM_ID>`, `<BASE64_ENCODED_TEAM_CERTIFICATE>`, and `<BASE64_ENCODED_PRIVATE_KEY>` with your Base64-encoded credentials. Use the following command to generate Base64-encoded values:
+Replace `<BASE64_ENCODED_TEAM_ID>`, `<BASE64_ENCODED_TEAM_CERTIFICATE>`, and `<BASE64_ENCODED_TEAM_PRIVATE_KEY>` with your Base64-encoded credentials. Use the following command to generate Base64-encoded values:
 
 ```bash
 echo -n "your_value_here" | base64
@@ -223,7 +228,12 @@ kubectl logs <POD_NAME> -c gremlin-sidecar
 
 Use the Gremlin console, API, or CLI to configure fault injection experiments targeting the application.
 
-### Inject `NoCredentialsError`
+### Note on Exception Types
+
+- To inject built-in exceptions like `ValueError`, specify the `exception` as a string.
+- To inject custom exceptions, specify the `exception` as an object with `module`, `className`, and `message`.
+
+### Inject `NoCredentialsError` (Simulate Missing AWS Credentials)
 
 ```json
 {
@@ -231,19 +241,22 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
   "labels": {
     "service": "s3",
     "operation": "list_bucket",
-    "path": "/blue"
+    "path": "/simulate-no-credentials"
   },
   "rate": 1.0,
   "effect": {
     "exception": {
-      "type": "NoCredentialsError",
-      "message": "Simulated missing AWS credentials"
+      "message": "Simulated missing AWS credentials",
+      "module": "botocore.exceptions",
+      "className": "NoCredentialsError"
     }
   }
 }
 ```
 
-### Inject `ClientError`
+**Explanation**: Injecting `NoCredentialsError` simulates a scenario where the application lacks the necessary AWS credentials to access the S3 bucket. This can occur in real life if credentials are misconfigured, expired, or not provided at all. Testing this helps ensure your application gracefully handles authentication failures and provides meaningful error messages to users.
+
+### Inject `ClientError` (Simulate AWS Service Error)
 
 ```json
 {
@@ -251,20 +264,87 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
   "labels": {
     "service": "s3",
     "operation": "list_bucket",
-    "path": "/green"
+    "path": "/simulate-client-error"
   },
   "rate": 1.0,
   "effect": {
     "exception": {
-      "type": "ClientError",
-      "message": "Simulated S3 client error"
+      "message": "Simulated S3 client error",
+      "module": "botocore.exceptions",
+      "className": "ClientError"
     }
   }
 }
 ```
+
+**Explanation**: Injecting `ClientError` simulates an error response from the AWS S3 service, such as invalid parameters, access denied, or resource not found. This is useful for testing how your application handles various AWS service errors, ensuring robust error handling and improving resilience against issues like permission changes or resource unavailability.
+
+### Inject `EndpointConnectionError` (Simulate Network Blackhole)
+
+```json
+{
+  "name": "list_s3_bucket_blackhole",
+  "labels": {
+    "service": "s3",
+    "operation": "list_bucket",
+    "path": "/simulate-blackhole"
+  },
+  "rate": 1.0,
+  "effect": {
+    "exception": {
+      "message": "Simulated endpoint connection error",
+      "module": "botocore.exceptions",
+      "className": "EndpointConnectionError"
+    }
+  }
+}
+```
+
+**Explanation**: Injecting `EndpointConnectionError` simulates a network blackhole by causing the application to experience a connection failure when attempting to reach the S3 endpoint. This mimics real-world network issues such as outages, DNS failures, or misconfigured endpoints, allowing you to test your application's ability to handle network disruptions gracefully.
+
+### Inject a Built-in Exception (`ValueError`) (Simulate Application Error)
+
+```json
+{
+  "name": "list_s3_bucket_value_error",
+  "labels": {
+    "service": "s3",
+    "operation": "list_bucket",
+    "path": "/simulate-value-error"
+  },
+  "rate": 1.0,
+  "effect": {
+    "exception": "This is a custom message"
+  }
+}
+```
+
+**Explanation**: Injecting a `ValueError` simulates an application-level error, such as invalid data processing or unexpected input values. This helps test your application's error-handling mechanisms for internal logic errors, ensuring that such exceptions are caught and managed appropriately without causing crashes or undefined behavior.
+
+### Simulate Latency (Simulate Network Delays)
+
+```json
+{
+  "name": "list_s3_bucket_latency",
+  "labels": {
+    "service": "s3",
+    "operation": "list_bucket",
+    "path": "/simulate-latency"
+  },
+  "rate": 1.0,
+  "effect": {
+    "latency": {
+      "ms": 5000
+    }
+  }
+}
+```
+
+**Explanation**: The latency effect introduces a delay of 5 seconds (`5000 ms`), simulating network latency or processing delays. This allows you to test how your application behaves under slow network conditions, helping you identify performance bottlenecks and improve user experience during high-latency scenarios.
 
 ---
 
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
+```
