@@ -80,39 +80,112 @@ cd s3-failure-flags-app
 
 ### Docker Build and Run
 
-1. **Build the Docker image:**
+To ensure seamless integration with the Gremlin API and proper configuration of environment variables, follow the steps below.
 
-   ```bash
-   docker build -t <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest .
-   ```
+#### 1. Build the Docker Image
 
-2. **Run the Docker container:**
+```bash
+docker build -t <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest .
+```
 
-   ```bash
-   docker run -e S3_BUCKET=commoncrawl -p 8080:8080 <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
-   ```
+Replace `<YOUR_DOCKER_REPO>` with your actual Docker repository path.
 
-3. **Access the application at:**
+#### 2. Prepare Gremlin Credentials
 
-   ```
-   http://localhost:8080
-   ```
+Ensure you have your Gremlin certificate-based credentials ready. You will need the following:
 
-4. **Push the image to a Docker repository (optional):**
+- **Team ID**
+- **Team Certificate**
+- **Team Private Key**
 
-   ```bash
-   docker push <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
-   ```
+These credentials should be base64-encoded before being used as environment variables.
+
+**Encode Your Credentials:**
+
+```bash
+echo -n "your_team_id_here" | base64
+echo -n "your_team_certificate_here" | base64
+echo -n "your_team_private_key_here" | base64
+```
+
+Replace `"your_team_id_here"`, `"your_team_certificate_here"`, and `"your_team_private_key_here"` with your actual Gremlin credentials.
+
+#### 3. Run the Docker Container with Required Environment Variables
+
+Use the following command to run the Docker container with all necessary environment variables:
+
+```bash
+docker run \
+  -e S3_BUCKET=commoncrawl \
+  -e GREMLIN_SIDECAR_ENABLED=true \
+  -e GREMLIN_TEAM_ID=<BASE64_ENCODED_TEAM_ID> \
+  -e GREMLIN_TEAM_CERTIFICATE=<BASE64_ENCODED_TEAM_CERTIFICATE> \
+  -e GREMLIN_TEAM_PRIVATE_KEY=<BASE64_ENCODED_TEAM_PRIVATE_KEY> \
+  -e GREMLIN_DEBUG=true \
+  -e SERVICE_NAME=s3-failure-flags-app \
+  -e REGION=us-east-1 \
+  -p 8080:8080 \
+  <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
+```
+
+**Environment Variables Explained:**
+
+- `S3_BUCKET`: Specifies the S3 bucket to access. Default is `commoncrawl`.
+- `GREMLIN_SIDECAR_ENABLED`: Enables the Gremlin Sidecar. Set to `true`.
+- `GREMLIN_TEAM_ID`: Your Gremlin Team ID (Base64 encoded).
+- `GREMLIN_TEAM_CERTIFICATE`: Your Gremlin Team Certificate (Base64 encoded).
+- `GREMLIN_TEAM_PRIVATE_KEY`: Your Gremlin Team Private Key (Base64 encoded).
+- `GREMLIN_DEBUG`: Enables debug logging for Gremlin Sidecar. Set to `true`.
+- `SERVICE_NAME`: Name of your service; should match the name used in your Failure Flags experiments.
+- `REGION`: The AWS region where your service is running. Example: `us-east-1`.
+
+**Example with Encoded Credentials:**
+
+```bash
+docker run \
+  -e S3_BUCKET=commoncrawl \
+  -e GREMLIN_SIDECAR_ENABLED=true \
+  -e GREMLIN_TEAM_ID=Y29tLmdlcm1saW4tdGVhbS1pZA== \
+  -e GREMLIN_TEAM_CERTIFICATE=LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCg== \
+  -e GREMLIN_TEAM_PRIVATE_KEY=LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQo= \
+  -e GREMLIN_DEBUG=true \
+  -e SERVICE_NAME=s3-failure-flags-app \
+  -e REGION=us-east-1 \
+  -p 8080:8080 \
+  <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
+```
+
+**Security Note:** Avoid hardcoding sensitive credentials directly into scripts or commands. Consider using Docker secrets or environment variable files (`.env`) to manage sensitive information securely.
+
+#### 4. Access the Application
+
+Once the Docker container is running, open your browser and navigate to:
+
+```
+http://localhost:8080
+```
+
+The application should be fully functional and integrated with the Gremlin API, ready to accept and handle fault injection experiments.
+
+#### 5. Push the Image to a Docker Repository (Optional)
+
+If you wish to store your Docker image in a repository for later use or deployment, execute:
+
+```bash
+docker push <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
+```
+
+Replace `<YOUR_DOCKER_REPO>` with your actual Docker repository path.
 
 ---
 
 ## Deploying to Kubernetes with Gremlin Sidecar
 
-To integrate with Gremlin Failure Flags, add the **Gremlin Sidecar** to your Kubernetes deployment. You can authenticate the sidecar using either certificates or a shared secret.
+To integrate with Gremlin Failure Flags, add the **Gremlin Sidecar** to your Kubernetes deployment using **certificate-based authentication**.
 
 ### 1. Create a Secret for Gremlin Credentials
 
-#### Method 1: Using Certificates
+#### Method: Using Certificates
 
 Create a Kubernetes secret for your Gremlin Team credentials (Certificates):
 
@@ -131,12 +204,12 @@ data:
 Replace `<BASE64_ENCODED_TEAM_ID>`, `<BASE64_ENCODED_TEAM_CERTIFICATE>`, and `<BASE64_ENCODED_TEAM_PRIVATE_KEY>` with your Base64-encoded credentials. Use the following command to generate Base64-encoded values:
 
 ```bash
-echo -n "your_value_here" | base64
+echo -n "your_team_id_here" | base64
+echo -n "your_team_certificate_here" | base64
+echo -n "your_team_private_key_here" | base64
 ```
 
-#### Method 2: Using Shared Secret
-
-Create a Kubernetes secret for your Gremlin Team credentials (Shared Secret):
+**Example:**
 
 ```yaml
 apiVersion: v1
@@ -145,11 +218,10 @@ metadata:
   name: gremlin-team-secret
 type: Opaque
 data:
-  GREMLIN_TEAM_ID: <BASE64_ENCODED_TEAM_ID>
-  GREMLIN_TEAM_SECRET: <BASE64_ENCODED_TEAM_SECRET>
+  team_id: Y29tLmdlcm1saW4tdGVhbS1pZA==
+  team_certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCg==
+  team_private_key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQo=
 ```
-
-Replace `<BASE64_ENCODED_TEAM_ID>` and `<BASE64_ENCODED_TEAM_SECRET>` with your Base64-encoded team ID and shared secret.
 
 Apply the secret to your cluster:
 
@@ -159,7 +231,7 @@ kubectl apply -f gremlin-team-secret.yaml
 
 ### 2. Update Deployment with the Sidecar
 
-Update your `deployment.yaml` to include the Gremlin Sidecar. Below are examples for both authentication methods.
+Update your `deployment.yaml` to include the Gremlin Sidecar using certificate-based authentication.
 
 #### Deployment Using Certificates
 
@@ -217,61 +289,9 @@ spec:
               value: "us-east-1"
 ```
 
-#### Deployment Using Shared Secret
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: s3-failure-flags-app
-  labels:
-    app: s3-failure-flags-app
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: s3-failure-flags-app
-  template:
-    metadata:
-      labels:
-        app: s3-failure-flags-app
-    spec:
-      containers:
-        - name: app-container
-          image: <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
-          ports:
-            - containerPort: 8080
-          env:
-            - name: S3_BUCKET
-              value: "commoncrawl"
-        - name: gremlin-sidecar
-          image: gremlin/failure-flags-sidecar:latest
-          imagePullPolicy: Always
-          env:
-            - name: GREMLIN_SIDECAR_ENABLED
-              value: "true"
-            - name: GREMLIN_TEAM_ID
-              valueFrom:
-                secretKeyRef:
-                  name: gremlin-team-secret
-                  key: GREMLIN_TEAM_ID
-            - name: GREMLIN_TEAM_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: gremlin-team-secret
-                  key: GREMLIN_TEAM_SECRET
-            - name: GREMLIN_DEBUG
-              value: "true"
-            - name: SERVICE_NAME
-              value: "s3-failure-flags-app"
-            - name: REGION
-              value: "us-east-1"
-```
-
 **Note:**
 
 - Ensure that the environment variable keys in `secretKeyRef` match the keys defined in your Kubernetes secret.
-- The `GREMLIN_TEAM_ID` and `GREMLIN_TEAM_SECRET` environment variables are used for authentication when using the shared secret method.
 - The `GREMLIN_SIDECAR_ENABLED`, `GREMLIN_DEBUG`, `SERVICE_NAME`, and `REGION` environment variables are required for the Gremlin Sidecar to function properly.
 
 ### 3. Apply the Deployment
@@ -308,27 +328,6 @@ kubectl logs <POD_NAME> -c gremlin-sidecar
 ## Fault Injection Examples
 
 Use the Gremlin console, API, or CLI to configure fault injection experiments targeting the application.
-
-### Simulate Latency (Simulate Network Delays)
-
-```json
-{
-  "name": "list_s3_bucket_latency",
-  "labels": {
-    "service": "s3",
-    "operation": "list_bucket",
-    "path": "/simulate-latency"
-  },
-  "rate": 1.0,
-  "effect": {
-    "latency": {
-      "ms": 5000
-    }
-  }
-}
-```
-
-**Explanation**: Introduces a 5-second delay to simulate network latency or processing delays.
 
 ### Inject a Built-in Exception (`ValueError`) (Simulate Application Error)
 
@@ -437,6 +436,52 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
 
 **Explanation**: Simulates a network blackhole to test network failure handling.
 
+### Simulate Latency (Simulate Network Delays or Blackhole)
+
+```json
+{
+  "name": "list_s3_bucket_latency",
+  "labels": {
+    "service": "s3",
+    "operation": "list_bucket",
+    "path": "/simulate-latency"
+  },
+  "rate": 1.0,
+  "effect": {
+    "latency": {
+      "ms": 5000
+    }
+  }
+}
+```
+
+**Explanation**: Introduces a 5-second delay to simulate network latency or processing delays.
+
+**Note on Simulating a Network Blackhole**:
+
+To simulate a network blackhole using latency, set the latency to a value that exceeds your application's timeout settings. For example, setting the latency to a very high value like **60,000 milliseconds (60 seconds)** can cause the client to timeout or hang indefinitely, effectively simulating a network blackhole. This tests how your application handles requests that do not receive a response within the expected time frame.
+
+Here's how you can modify the latency effect to simulate a blackhole:
+
+```json
+{
+  "name": "list_s3_bucket_blackhole_latency",
+  "labels": {
+    "service": "s3",
+    "operation": "list_bucket",
+    "path": "/simulate-blackhole-latency"
+  },
+  "rate": 1.0,
+  "effect": {
+    "latency": {
+      "ms": 60000
+    }
+  }
+}
+```
+
+**Explanation**: By introducing a 60-second delay, you can simulate a network blackhole if your application's timeout settings are lower than 60 seconds.
+
 ### Modify Response Data (Simulate Data Corruption)
 
 ```json
@@ -465,3 +510,4 @@ The application validates all responses from external services to ensure robustn
 ## License
 
 This project is licensed under the Apache License 2.0. See the [`LICENSE`](LICENSE) file for details.
+
