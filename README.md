@@ -309,6 +309,27 @@ kubectl logs <POD_NAME> -c gremlin-sidecar
 
 Use the Gremlin console, API, or CLI to configure fault injection experiments targeting the application.
 
+### Simulate Latency (Simulate Network Delays)
+
+```json
+{
+  "name": "list_s3_bucket_latency",
+  "labels": {
+    "service": "s3",
+    "operation": "list_bucket",
+    "path": "/simulate-latency"
+  },
+  "rate": 1.0,
+  "effect": {
+    "latency": {
+      "ms": 5000
+    }
+  }
+}
+```
+
+**Explanation**: Introduces a 5-second delay to simulate network latency or processing delays.
+
 ### Inject a Built-in Exception (`ValueError`) (Simulate Application Error)
 
 ```json
