@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Existing head content -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>S3 Bucket Contents</title>
     <style>
+        /* Existing styles */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -63,6 +65,14 @@
             text-decoration: none;
             font-weight: bold;
         }
+        /* New styles for links */
+        a {
+            color: #7d4cff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -71,13 +81,23 @@
         <h2>Listing Files and Directories in Path: /{{ path }}</h2>
     </header>
     <main>
-    <ul>
-        {% for obj in objects %}
-        <li>
-            <span>{{ obj.Key }}</span> - {{ obj.Size }}
-        </li>
-        {% endfor %}
-    </ul>
+        {% if message %}
+            <p>{{ message }}</p>
+        {% elif objects %}
+            <ul>
+                {% for obj in objects %}
+                <li>
+                    {% if obj.Size == 'Directory' %}
+                        <span><a href="/{{ obj.Key }}">{{ obj.Key }}</a></span> - {{ obj.Size }}
+                    {% else %}
+                        <span>{{ obj.Key }}</span> - {{ obj.Size }}
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No objects found in this path.</p>
+        {% endif %}
     </main>
     <footer>
         Powered by <a href="https://www.gremlin.com" target="_blank">Gremlin</a>

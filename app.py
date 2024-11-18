@@ -39,7 +39,7 @@ def custom_behavior(effect, behavior):
 @app.route("/<path:path>")
 def list_s3_contents(path=""):
     """
-    List the top-level contents of the specified S3 bucket path.
+    List the contents of the specified S3 bucket path.
     """
     # Create and invoke the FailureFlag
     failure_flag = FailureFlag(
@@ -51,32 +51,38 @@ def list_s3_contents(path=""):
     failure_flag.invoke()
 
     try:
-        # Always perform the S3 operation
+        # Perform the S3 operation
         response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=path, Delimiter='/')
 
         # Validate the response
         if not isinstance(response, dict):
             raise ValueError("Invalid response format from S3")
 
-        # Check for corrupted data or unexpected keys
-        expected_keys = {"IsTruncated", "Marker", "Contents", "Name", "Prefix", "Delimiter", "MaxKeys", "CommonPrefixes", "EncodingType"}
-        if not expected_keys.issubset(response.keys()):
-            raise ValueError("Missing expected keys in S3 response")
-
-        # Handle the possibly corrupted response
+        # Check for corrupted data
         if response.get('CorruptedData'):
             raise ValueError("Received corrupted data from S3")
 
-        # Directories and files at the current path
+        # Extract directories and files
         directories = response.get("CommonPrefixes", [])
         files = response.get("Contents", [])
+
+        # Check if both directories and files are empty
+        if not directories and not files:
+            logger.info("No objects found in the specified path.")
+            return render_template(
+                "index.html",
+                bucket=S3_BUCKET,
+                path=path,
+                objects=[],
+                message="No objects found in this path."
+            )
 
         # Combine directories and files into a single list
         items = []
         for directory in directories:
-            items.append({"Key": directory["Prefix"], "Size": "Directory"})
+            items.append({"Key": directory.get("Prefix", "Unknown"), "Size": "Directory"})
         for file in files:
-            items.append({"Key": file["Key"], "Size": f"{file['Size']} bytes"})
+            items.append({"Key": file.get("Key", "Unknown"), "Size": f"{file.get('Size', 'Unknown')} bytes"})
 
         return render_template("index.html", bucket=S3_BUCKET, path=path, objects=items)
     except s3_client.exceptions.NoSuchBucket as e:
