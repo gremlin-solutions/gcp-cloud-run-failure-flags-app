@@ -4,115 +4,112 @@ This application demonstrates fault injection using Gremlin Failure Flags in a F
 
 ## Features
 
-- Lists the contents of an S3 bucket.
-- Configurable settings via environment variables:
-  - **S3 Bucket Name**: Specify the target S3 bucket.
-- Includes integration with the Gremlin Failure Flags Sidecar for chaos engineering experiments.
-- Simulates faults using Gremlin Failure Flags:
-  - **Exception injection**, such as:
-    - Application-level exceptions (e.g., `ValueError`, **`CustomAppException`**).
-    - AWS S3 exceptions (`NoCredentialsError`, `ClientError`, `EndpointConnectionError`).
-  - **Latency injection** using Gremlin's latency effect.
-  - **Response modification**: Simulate data corruption by modifying responses from external services.
-- **Supports custom behaviors** with proper behavior chain maintenance, enabling advanced fault injection scenarios.
+- **List S3 Bucket Contents:** Displays the contents of a specified S3 bucket.
+- **Configurable Settings:** Customize the target S3 bucket via environment variables.
+- **Gremlin Integration:** Integrates with the Gremlin Failure Flags Sidecar for chaos engineering experiments.
+- **Fault Injection Capabilities:**
+  - **Exception Injection:** Simulate application and AWS S3 exceptions.
+  - **Latency Injection:** Introduce network delays.
+  - **Response Modification:** Corrupt responses from external services.
+- **Custom Behaviors:** Supports advanced fault injection scenarios with proper behavior chain maintenance.
 
 ## Prerequisites
 
-- Python 3.9+
-- Docker
-- Kubernetes
-- AWS credentials configured to access the target S3 bucket (for `commoncrawl`, no credentials are needed for public access).
-- A Gremlin account with Failure Flags enabled.
+- **Software:**
+  - Python 3.9+
+  - Docker
+  - Kubernetes
+- **Accounts & Credentials:**
+  - AWS credentials configured for accessing the target S3 bucket (not required for the public `commoncrawl` bucket).
+  - A Gremlin account with Failure Flags enabled.
 
 ## Setup Instructions
 
-### Clone the Repository
+### 1. Clone the Repository
 
 ```bash
 git clone git@github.com:jsabo/s3-failure-flags-app.git
 cd s3-failure-flags-app
 ```
 
-### Local Development
+### 2. Local Development
 
-1. **Create and activate a virtual environment:**
+#### a. Create and Activate a Virtual Environment
 
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-2. **Install dependencies in the virtual environment:**
+#### b. Install Dependencies
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-3. **Set the required environment variables:**
+#### c. Configure Environment Variables
 
-   ```bash
-   export S3_BUCKET=commoncrawl
-   export FAILURE_FLAGS_ENABLED=true
-   ```
+```bash
+export S3_BUCKET=commoncrawl
+export FAILURE_FLAGS_ENABLED=true
+```
 
-   **Environment Variables Explained:**
+**Environment Variables:**
 
-   - `S3_BUCKET`: Specifies the name of the S3 bucket to access. Default is `commoncrawl`, a publicly accessible bucket.
-   - `FAILURE_FLAGS_ENABLED`: Enables the failure flags functionality. Set to `true` to activate fault injection capabilities.
+- `S3_BUCKET`: Name of the S3 bucket to access (default: `commoncrawl`).
+- `FAILURE_FLAGS_ENABLED`: Enable fault injection functionality (`true`).
 
-   **Note:** The `commoncrawl` bucket is a public bucket provided by [Common Crawl](https://commoncrawl.org/the-data/get-started/). It contains a vast repository of web crawl data that is publicly accessible.
+**Note:** The `commoncrawl` bucket is publicly accessible and does not require AWS credentials.
 
-4. **Run the application:**
+#### d. Run the Application
 
-   ```bash
-   python app.py
-   ```
+```bash
+python app.py
+```
 
-5. **Open your browser and navigate to:**
+#### e. Access the Application
 
-   ```
-   http://127.0.0.1:8080
-   ```
+Open your browser and navigate to:
 
-6. **Deactivate the virtual environment when done:**
+```
+http://127.0.0.1:8080
+```
 
-   ```bash
-   deactivate
-   ```
+#### f. Deactivate the Virtual Environment
 
-### Docker Build and Push
+```bash
+deactivate
+```
 
-To prepare the Docker image for deployment to Kubernetes, follow the steps below.
+### 3. Docker Build and Push
 
-#### 1. Build the Docker Image
+#### a. Build the Docker Image
 
 ```bash
 docker build -t <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest .
 ```
 
-Replace `<YOUR_DOCKER_REPO>` with your actual Docker repository path.
+Replace `<YOUR_DOCKER_REPO>` with your Docker repository path.
 
-#### 2. Push the Docker Image to Your Repository
+#### b. Push the Docker Image to Your Repository
 
 ```bash
 docker push <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
 ```
 
-Replace `<YOUR_DOCKER_REPO>` with your actual Docker repository path.
-
-**Security Note:** Ensure that your Docker repository is secure and that only authorized personnel have access to push or pull images.
+**Security Note:** Ensure your Docker repository is secure and access is restricted to authorized personnel.
 
 ---
 
 ## Deploying to Kubernetes with Gremlin Sidecar
 
-To integrate with Gremlin Failure Flags, add the **Gremlin Sidecar** to your Kubernetes deployment using **certificate-based authentication**.
+Integrate Gremlin Failure Flags by adding the **Gremlin Sidecar** to your Kubernetes deployment using certificate-based authentication.
 
 ### 1. Create a Secret for Gremlin Credentials
 
-#### Method: Using Certificates
+#### Using Certificates
 
-Create a Kubernetes secret for your Gremlin Team credentials (Certificates):
+Create a Kubernetes Secret with your Gremlin Team credentials:
 
 ```yaml
 apiVersion: v1
@@ -126,7 +123,7 @@ data:
   team_private_key: <BASE64_ENCODED_TEAM_PRIVATE_KEY>
 ```
 
-Replace `<BASE64_ENCODED_TEAM_ID>`, `<BASE64_ENCODED_TEAM_CERTIFICATE>`, and `<BASE64_ENCODED_TEAM_PRIVATE_KEY>` with your Base64-encoded credentials. Use the following command to generate Base64-encoded values:
+**Replace the placeholders with your Base64-encoded credentials:**
 
 ```bash
 echo -n "your_team_id_here" | base64
@@ -148,7 +145,7 @@ data:
   team_private_key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQo=
 ```
 
-Apply the secret to your cluster:
+Apply the Secret:
 
 ```bash
 kubectl apply -f gremlin-team-secret.yaml
@@ -156,9 +153,7 @@ kubectl apply -f gremlin-team-secret.yaml
 
 ### 2. Update Deployment with the Sidecar
 
-Update your `deployment.yaml` to include the Gremlin Sidecar using certificate-based authentication.
-
-#### Deployment Using Certificates
+Modify your `deployment.yaml` to include the Gremlin Sidecar:
 
 ```yaml
 apiVersion: apps/v1
@@ -218,10 +213,11 @@ spec:
               value: "true"
 ```
 
-**Note:**
+**Notes:**
 
-- Ensure that the environment variable keys in `secretKeyRef` match the keys defined in your Kubernetes secret.
-- The following environment variables are required for the Gremlin Sidecar to function properly:
+- Replace `<YOUR_DOCKER_REPO>` with your Docker repository path.
+- Ensure environment variable keys in `secretKeyRef` match those in your Secret.
+- Required environment variables for Gremlin Sidecar:
   - `GREMLIN_SIDECAR_ENABLED`
   - `GREMLIN_TEAM_ID`
   - `GREMLIN_TEAM_CERTIFICATE`
@@ -233,7 +229,7 @@ spec:
 
 ### 3. Apply the Deployment
 
-Deploy the updated configuration to Kubernetes:
+Deploy your application and service to Kubernetes:
 
 ```bash
 kubectl apply -f deployment.yaml
@@ -242,13 +238,13 @@ kubectl apply -f service.yaml
 
 ### 4. Verify the Deployment
 
-Check that both the application container and the Gremlin Sidecar are running:
+Ensure both containers are running:
 
 ```bash
 kubectl get pods
 ```
 
-View the logs of the Gremlin Sidecar to ensure it is connected:
+Check Gremlin Sidecar logs:
 
 ```bash
 kubectl logs <POD_NAME> -c gremlin-sidecar
@@ -256,17 +252,17 @@ kubectl logs <POD_NAME> -c gremlin-sidecar
 
 ### 5. Run Experiments
 
-- Log in to the **Gremlin UI**.
-- Navigate to **Failure Flags** → **Services** to see your application.
-- Start creating and running experiments.
+- **Log in to Gremlin UI.**
+- **Navigate to:** `Failure Flags` → `Services`.
+- **Select your application and start experiments.**
 
 ---
 
 ## Fault Injection Examples
 
-Use the Gremlin console, API, or CLI to configure fault injection experiments targeting the application.
+Configure fault injection experiments using Gremlin's console, API, or CLI.
 
-### Inject a Built-in Exception (`ValueError`) (Simulate Application Error)
+### 1. Inject a Built-in Exception (`ValueError`)
 
 ```json
 {
@@ -283,9 +279,9 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
 }
 ```
 
-**Explanation**: Simulates an application-level error by injecting a `ValueError`. This tests how your application handles internal exceptions.
+**Purpose:** Simulates an application-level `ValueError` to test exception handling.
 
-### Inject `CustomAppException` (Simulate Custom Application Error)
+### 2. Inject `CustomAppException`
 
 ```json
 {
@@ -302,9 +298,9 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
 }
 ```
 
-**Explanation**: Simulates a custom application exception. Since `CustomAppException` is defined within the application code, a custom behavior is used to raise it. This tests the application's ability to handle application-specific errors.
+**Purpose:** Simulates a custom application exception to test handling of application-specific errors.
 
-### Inject `NoCredentialsError` (Simulate Missing AWS Credentials)
+### 3. Inject `NoCredentialsError`
 
 ```json
 {
@@ -325,9 +321,9 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
 }
 ```
 
-**Explanation**: Simulates missing AWS credentials to test authentication failure handling. Note that since the `commoncrawl` bucket is publicly accessible, this exception will not occur under normal circumstances unless explicitly injected.
+**Purpose:** Simulates missing AWS credentials to test authentication failure handling.
 
-### Inject `ClientError` (Simulate AWS Service Error)
+### 4. Inject `ClientError`
 
 ```json
 {
@@ -348,9 +344,9 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
 }
 ```
 
-**Explanation**: Simulates an AWS service error to test how your application handles service exceptions.
+**Purpose:** Simulates an AWS service error to test handling of service exceptions.
 
-### Inject `EndpointConnectionError` (Simulate Network Blackhole)
+### 5. Inject `EndpointConnectionError`
 
 ```json
 {
@@ -371,9 +367,9 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
 }
 ```
 
-**Explanation**: Simulates a network blackhole to test network failure handling.
+**Purpose:** Simulates a network blackhole to test network failure handling.
 
-### Simulate Latency (Simulate Network Delays or Blackhole)
+### 6. Simulate Latency
 
 ```json
 {
@@ -392,13 +388,11 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
 }
 ```
 
-**Explanation**: Introduces a 5-second delay to simulate network latency or processing delays.
+**Purpose:** Introduces a 5-second delay to simulate network latency or processing delays.
 
-**Note on Simulating a Network Blackhole**:
+**Simulating a Network Blackhole:**
 
-To simulate a network blackhole using latency, set the latency to a value that exceeds your application's timeout settings. For example, setting the latency to a very high value like **60,000 milliseconds (60 seconds)** can cause the client to timeout or hang indefinitely, effectively simulating a network blackhole. This tests how your application handles requests that do not receive a response within the expected time frame.
-
-Here's how you can modify the latency effect to simulate a blackhole:
+Set latency beyond your application's timeout settings (e.g., 60,000 ms) to simulate a blackhole.
 
 ```json
 {
@@ -417,9 +411,9 @@ Here's how you can modify the latency effect to simulate a blackhole:
 }
 ```
 
-**Explanation**: By introducing a 60-second delay, you can simulate a network blackhole if your application's timeout settings are lower than 60 seconds.
+**Purpose:** Simulates a network blackhole by introducing a 60-second delay.
 
-### Modify Response Data (Simulate Data Corruption)
+### 7. Modify Response Data
 
 ```json
 {
@@ -436,11 +430,7 @@ Here's how you can modify the latency effect to simulate a blackhole:
 }
 ```
 
-**Explanation**: Modifies the response data from the S3 client to simulate data corruption. The application will detect the corrupted data through its validation logic and handle it appropriately.
-
-**Note on Response Validation**
-
-The application validates all responses from external services to ensure robustness against unexpected or corrupted data. When injecting faults like modified responses using Gremlin Failure Flags, the application will handle them through its standard validation logic. This approach allows you to simulate real-world scenarios where external services might return invalid data.
+**Purpose:** Corrupts the response data from the S3 client to test data validation and handling.
 
 ---
 
