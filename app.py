@@ -10,8 +10,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Environment Variables
-S3_BUCKET = os.getenv('S3_BUCKET', 'default-bucket-name')
-FAILURE_FLAGS_ENABLED = os.getenv('FAILURE_FLAGS_ENABLED', 'false').lower() == 'true'
+S3_BUCKET = os.getenv('S3_BUCKET', 'commoncrawl')
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -19,25 +18,54 @@ app = Flask(__name__)
 # Configure S3 Client
 s3_client = boto3.client('s3')
 
+# Define a custom exception
+class CustomAppException(Exception):
+    """Custom exception for application-specific errors."""
+    pass
+
+# Custom behavior function
+def custom_behavior(effect, behavior):
+    if 'modify_response' in effect:
+        # Modify the response data to simulate data corruption
+        return {'CorruptedData': True}
+    elif 'exception' in effect and effect['exception'] == 'CustomAppException':
+        # Raise custom application exception
+        raise CustomAppException("Simulated custom application exception")
+    else:
+        # Pass the effect to the next behavior in the chain
+        behavior(effect)
+
 @app.route("/")
 @app.route("/<path:path>")
 def list_s3_contents(path=""):
     """
     List the top-level contents of the specified S3 bucket path.
     """
-    # Create a FailureFlag for the given path
+    # Create and invoke the FailureFlag
     failure_flag = FailureFlag(
         name="list_s3_bucket",
         labels={"service": "s3", "operation": "list_bucket", "path": path},
-        debug=True  # Use default behavior
+        behavior=custom_behavior,  # Use custom behavior
+        debug=True
     )
+    failure_flag.invoke()
 
-    # Invoke the failure flag
-    active, impacted, experiments = failure_flag.invoke()
-
-    # Proceed with normal execution; default behavior handles exceptions and latency
     try:
+        # Always perform the S3 operation
         response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=path, Delimiter='/')
+
+        # Validate the response
+        if not isinstance(response, dict):
+            raise ValueError("Invalid response format from S3")
+
+        # Check for corrupted data or unexpected keys
+        expected_keys = {"IsTruncated", "Marker", "Contents", "Name", "Prefix", "Delimiter", "MaxKeys", "CommonPrefixes", "EncodingType"}
+        if not expected_keys.issubset(response.keys()):
+            raise ValueError("Missing expected keys in S3 response")
+
+        # Handle the possibly corrupted response
+        if response.get('CorruptedData'):
+            raise ValueError("Received corrupted data from S3")
 
         # Directories and files at the current path
         directories = response.get("CommonPrefixes", [])
@@ -65,6 +93,12 @@ def list_s3_contents(path=""):
         error_message = e.response['Error']['Message']
         logger.error(f"ClientError occurred: {error_code} - {error_message}")
         return jsonify({"error": f"Client error: {error_message}"}), 400
+    except CustomAppException as e:
+        logger.error(f"CustomAppException: {e}")
+        return jsonify({"error": str(e)}), 500
+    except ValueError as e:
+        logger.error(f"ValueError: {e}")
+        return jsonify({"error": str(e)}), 500
     except Exception as e:
         logger.error(f"Error listing bucket contents: {e}")
         return jsonify({"error": "Failed to list bucket contents"}), 500
