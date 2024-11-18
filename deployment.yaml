@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3-failure-flags-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: s3-failure-flags-app
+  template:
+    metadata:
+      labels:
+        app: s3-failure-flags-app
+    spec:
+      containers:
+      - name: s3-failure-flags-app
+        image: your-docker-repo/s3-failure-flags-app:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: S3_BUCKET
+          value: "your-bucket-name"
+        - name: FAILURE_FLAGS_ENABLED
+          value: "true"
+

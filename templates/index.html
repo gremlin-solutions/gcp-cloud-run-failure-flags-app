@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>S3 Bucket Contents</title>
+</head>
+<body>
+    <h1>S3 Bucket: {{ bucket }}</h1>
+    <h2>Path: /{{ path }}</h2>
+    <ul>
+        {% for obj in objects %}
+        <li>{{ obj.Key }} ({{ obj.Size }} bytes)</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+
