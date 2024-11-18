@@ -21,78 +21,65 @@ This application demonstrates fault injection using Gremlin Failure Flags in a F
 
 ### Clone the Repository
 
-```
-git clone https://github.com/jsabo/s3-failure-flags-app.git
+git clone https://github.com/your-repo/s3-failure-flags-app.git
 cd s3-failure-flags-app
-```
 
 ### Local Development
 
-1. Install dependencies:
+1. Create and activate a virtual environment:
 
-```
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+2. Install dependencies in the virtual environment:
+
 pip install -r requirements.txt
-```
 
-2. Set the required environment variables:
+3. Set the required environment variables:
 
-```
 export S3_BUCKET=your-bucket-name
 export FAILURE_FLAGS_ENABLED=true
-```
 
-3. Run the application:
+4. Run the application:
 
-```
 python app.py
-```
 
-4. Open your browser and navigate to:
+5. Open your browser and navigate to:
 
-```
 http://127.0.0.1:5000
-```
+
+6. Deactivate the virtual environment when done:
+
+deactivate
 
 ### Docker Build and Run
 
 1. Build the Docker image:
 
-```
 docker build -t your-docker-repo/s3-failure-flags-app:latest .
-```
 
 2. Run the Docker container:
 
-```
 docker run -e S3_BUCKET=your-bucket-name -e FAILURE_FLAGS_ENABLED=true -p 5000:5000 your-docker-repo/s3-failure-flags-app:latest
-```
 
 3. Access the application at:
 
-```
 http://localhost:5000
-```
 
 4. Push the image to a Docker repository:
 
-```
 docker push your-docker-repo/s3-failure-flags-app:latest
-```
 
 ### Kubernetes Deployment
 
 1. Deploy the application to Kubernetes:
 
-```
 kubectl apply -f deployment.yaml
 kubectl apply -f service.yaml
-```
 
 2. Find the external IP address of the service:
 
-```
 kubectl get services
-```
 
 3. Access the application at the external IP.
 
@@ -168,3 +155,4 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
+
