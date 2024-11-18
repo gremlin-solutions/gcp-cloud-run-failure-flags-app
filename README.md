@@ -107,45 +107,70 @@ Integrate Gremlin Failure Flags by adding the **Gremlin Sidecar** to your Kubern
 
 ### 1. Create a Secret for Gremlin Credentials
 
-#### Using Certificates
+#### a. Download Gremlin Certificate Files
 
-Create a Kubernetes Secret with your Gremlin Team credentials:
+Download the following certificate files from your Gremlin team's configuration:
 
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: gremlin-team-secret
-type: Opaque
-data:
-  team_id: <BASE64_ENCODED_TEAM_ID>
-  team_certificate: <BASE64_ENCODED_TEAM_CERTIFICATE>
-  team_private_key: <BASE64_ENCODED_TEAM_PRIVATE_KEY>
-```
+- **Team ID**
+- **Team Certificate (`team-name.pub_cert.pem`)**
+- **Team Private Key (`team-name.priv_key.pem`)**
 
-**Replace the placeholders with your Base64-encoded credentials:**
+Assume the files are downloaded to `~/Downloads/`:
+
+- `~/Downloads/team-name.pub_cert.pem`
+- `~/Downloads/team-name.priv_key.pem`
+
+#### b. Base64 Encode the Credentials
+
+Run the following commands to base64 encode your credentials in a portable manner compatible with both Linux and macOS:
 
 ```bash
-echo -n "your_team_id_here" | base64
-echo -n "your_team_certificate_here" | base64
-echo -n "your_team_private_key_here" | base64
+# Replace with your actual Team ID
+TEAM_ID="team-name"
+BASE64_TEAM_ID=$(echo -n "$TEAM_ID" | base64)
+
+# Encode the Team Certificate
+BASE64_CERT=$(cat ~/Downloads/team-name.pub_cert.pem | base64 | tr -d '\n')
+
+# Encode the Team Private Key
+BASE64_PRIV_KEY=$(cat ~/Downloads/team-name.priv_key.pem | base64 | tr -d '\n')
 ```
 
-**Example:**
+**Explanation:**
 
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: gremlin-team-secret
-type: Opaque
-data:
-  team_id: Y29tLmdlcm1saW4tdGVhbS1pZA==
-  team_certificate: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCg==
-  team_private_key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQo=
-```
+- `echo -n "$TEAM_ID" | base64`: Encodes the Team ID without adding a newline.
+- `cat file | base64 | tr -d '\n'`: Encodes the certificate and private key files and removes any newline characters to ensure the base64 string is on a single line.
 
-Apply the Secret:
+#### c. Replace Placeholders in the Secret Template
+
+1. **Create a Secret Template File (`gremlin-team-secret-template.yaml`):**
+
+    ```yaml
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: gremlin-team-secret
+    type: Opaque
+    data:
+      team_id: <BASE64_ENCODED_TEAM_ID>
+      team_certificate: <BASE64_ENCODED_TEAM_CERTIFICATE>
+      team_private_key: <BASE64_ENCODED_TEAM_PRIVATE_KEY>
+    ```
+
+2. **Replace Placeholders Using `sed`:**
+
+    ```bash
+    sed -e "s|<BASE64_ENCODED_TEAM_ID>|$BASE64_TEAM_ID|g" \
+        -e "s|<BASE64_ENCODED_TEAM_CERTIFICATE>|$BASE64_CERT|g" \
+        -e "s|<BASE64_ENCODED_TEAM_PRIVATE_KEY>|$BASE64_PRIV_KEY|g" \
+        gremlin-team-secret-template.yaml > gremlin-team-secret.yaml
+    ```
+
+**Explanation:**
+
+- The `sed` command replaces the placeholders `<BASE64_ENCODED_TEAM_ID>`, `<BASE64_ENCODED_TEAM_CERTIFICATE>`, and `<BASE64_ENCODED_TEAM_PRIVATE_KEY>` with the actual base64-encoded values.
+
+#### d. Apply the Secret to Kubernetes
 
 ```bash
 kubectl apply -f gremlin-team-secret.yaml
@@ -217,7 +242,7 @@ spec:
 
 - Replace `<YOUR_DOCKER_REPO>` with your Docker repository path.
 - Ensure environment variable keys in `secretKeyRef` match those in your Secret.
-- Required environment variables for Gremlin Sidecar:
+- **Required Environment Variables for Gremlin Sidecar:**
   - `GREMLIN_SIDECAR_ENABLED`
   - `GREMLIN_TEAM_ID`
   - `GREMLIN_TEAM_CERTIFICATE`
@@ -249,6 +274,8 @@ Check Gremlin Sidecar logs:
 ```bash
 kubectl logs <POD_NAME> -c gremlin-sidecar
 ```
+
+*Replace `<POD_NAME>` with the actual name of your pod.*
 
 ### 5. Run Experiments
 
@@ -431,6 +458,10 @@ Set latency beyond your application's timeout settings (e.g., 60,000 ms) to simu
 ```
 
 **Purpose:** Corrupts the response data from the S3 client to test data validation and handling.
+
+**Note on Response Validation**
+
+The application validates all responses from external services to ensure robustness against unexpected or corrupted data. When injecting faults like modified responses using Gremlin Failure Flags, the application will handle them through its standard validation logic. This approach allows you to simulate real-world scenarios where external services might return invalid data.
 
 ---
 
