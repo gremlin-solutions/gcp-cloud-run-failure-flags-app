@@ -159,7 +159,9 @@ kubectl apply -f gremlin-team-secret.yaml
 
 ### 2. Update Deployment with the Sidecar
 
-Update your `deployment.yaml` to include the Gremlin Sidecar. Below is an example:
+Update your `deployment.yaml` to include the Gremlin Sidecar. Below are examples for both authentication methods.
+
+#### Deployment Using Certificates
 
 ```yaml
 apiVersion: apps/v1
@@ -214,6 +216,63 @@ spec:
             - name: REGION
               value: "us-east-1"
 ```
+
+#### Deployment Using Shared Secret
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3-failure-flags-app
+  labels:
+    app: s3-failure-flags-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s3-failure-flags-app
+  template:
+    metadata:
+      labels:
+        app: s3-failure-flags-app
+    spec:
+      containers:
+        - name: app-container
+          image: <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: S3_BUCKET
+              value: "commoncrawl"
+        - name: gremlin-sidecar
+          image: gremlin/failure-flags-sidecar:latest
+          imagePullPolicy: Always
+          env:
+            - name: GREMLIN_SIDECAR_ENABLED
+              value: "true"
+            - name: GREMLIN_TEAM_ID
+              valueFrom:
+                secretKeyRef:
+                  name: gremlin-team-secret
+                  key: GREMLIN_TEAM_ID
+            - name: GREMLIN_TEAM_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gremlin-team-secret
+                  key: GREMLIN_TEAM_SECRET
+            - name: GREMLIN_DEBUG
+              value: "true"
+            - name: SERVICE_NAME
+              value: "s3-failure-flags-app"
+            - name: REGION
+              value: "us-east-1"
+```
+
+**Note:**
+
+- Ensure that the environment variable keys in `secretKeyRef` match the keys defined in your Kubernetes secret.
+- The `GREMLIN_TEAM_ID` and `GREMLIN_TEAM_SECRET` environment variables are used for authentication when using the shared secret method.
+- The `GREMLIN_SIDECAR_ENABLED`, `GREMLIN_DEBUG`, `SERVICE_NAME`, and `REGION` environment variables are required for the Gremlin Sidecar to function properly.
 
 ### 3. Apply the Deployment
 
