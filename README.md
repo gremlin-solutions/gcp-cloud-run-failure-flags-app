@@ -250,12 +250,6 @@ kubectl logs <POD_NAME> -c gremlin-sidecar
 
 Use the Gremlin console, API, or CLI to configure fault injection experiments targeting the application.
 
-### Note on Response Validation
-
-- The application **validates** all responses from external services to ensure robustness against unexpected or corrupted data.
-- When injecting faults like modified responses using Gremlin Failure Flags, the application will handle them through its standard validation logic.
-- This approach allows you to simulate real-world scenarios where external services might return invalid data.
-
 ### Inject a Built-in Exception (`ValueError`) (Simulate Application Error)
 
 ```json
@@ -402,6 +396,10 @@ Use the Gremlin console, API, or CLI to configure fault injection experiments ta
 ```
 
 **Explanation**: Modifies the response data from the S3 client to simulate data corruption. The application will detect the corrupted data through its validation logic and handle it appropriately.
+
+**Note on Response Validation**
+
+The application validates all responses from external services to ensure robustness against unexpected or corrupted data. When injecting faults like modified responses using Gremlin Failure Flags, the application will handle them through its standard validation logic. This approach allows you to simulate real-world scenarios where external services might return invalid data.
 
 ---
 
