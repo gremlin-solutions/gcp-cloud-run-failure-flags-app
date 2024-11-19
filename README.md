@@ -86,7 +86,7 @@ deactivate
 #### a. Build the Docker Image
 
 ```bash
-docker build -t <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest .
+docker build --platform linux/amd64 -t <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest .
 ```
 
 Replace `<YOUR_DOCKER_REPO>` with your Docker repository path.

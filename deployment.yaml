@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: app-container
-          image: <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
+          image: jsabo/s3-failure-flags-app:latest
           ports:
             - containerPort: 8080
           env:
@@ -50,6 +50,6 @@ spec:
             - name: SERVICE_NAME
               value: "s3-failure-flags-app"
             - name: REGION
-              value: "us-east-1"
+              value: "us-east-2"
             - name: FAILURE_FLAGS_ENABLED
               value: "true"
