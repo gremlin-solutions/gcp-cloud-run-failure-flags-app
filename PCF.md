@@ -1,4 +1,3 @@
-```markdown
 ### PCF Manifest for the Deployment
 
 To adapt the Kubernetes deployment to work in Pivotal Cloud Foundry (PCF) while preserving sidecar functionality, we use PCF's sidecar feature introduced in Cloud Foundry Application Runtime v3.
