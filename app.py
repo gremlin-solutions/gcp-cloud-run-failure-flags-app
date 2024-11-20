@@ -24,16 +24,16 @@ class CustomAppException(Exception):
     pass
 
 # Custom behavior function
-def custom_behavior(effect, behavior):
-    if 'modify_response' in effect:
-        # Modify the response data to simulate data corruption
-        return {'CorruptedData': True}
-    elif 'exception' in effect and effect['exception'] == 'CustomAppException':
-        # Raise custom application exception
-        raise CustomAppException("Simulated custom application exception")
-    else:
-        # Pass the effect to the next behavior in the chain
-        behavior(effect)
+#def custom_behavior(failure_flag, experiments):
+#    for experiment in experiments:
+#        if 'modify_response' in experiment['effect']:
+#            return {'CorruptedData': True}
+#        elif 'exception' in experiment['effect'] and experiment['effect']['exception'] == 'CustomAppException':
+#            raise CustomAppException("Simulated custom application exception")
+
+def customBehavior(ff, experiments):
+    logger.debug(experiments)
+    return defaultBehavior(ff, experiments)
 
 @app.route("/")
 @app.route("/<path:path>")
@@ -44,7 +44,7 @@ def list_s3_contents(path=""):
     # Create and invoke the FailureFlag
     failure_flag = FailureFlag(
         name="list_s3_bucket",
-        labels={"service": "s3", "operation": "list_bucket", "path": path},
+        labels={"path": path},
         behavior=custom_behavior,  # Use custom behavior
         debug=True
     )
