@@ -277,7 +277,15 @@ kubectl logs <POD_NAME> -c gremlin-sidecar
 
 *Replace `<POD_NAME>` with the actual name of your pod.*
 
-### 5. Run Experiments
+### 5. Roll Out a New Docker Image
+
+When you push a new image with the `latest` tag, ensure Kubernetes pulls the updated image by restarting the deployment:
+
+```bash
+kubectl rollout restart deployment s3-failure-flags-app
+```
+
+### 6. Run Experiments
 
 - **Log in to Gremlin UI.**
 - **Navigate to:** `Failure Flags` → `Services`.
