@@ -16,13 +16,6 @@ applications:
     env:
       S3_BUCKET: "commoncrawl"
       FAILURE_FLAGS_ENABLED: "true"
-      GREMLIN_SIDECAR_ENABLED: "true"
-      GREMLIN_TEAM_ID: ((gremlin_team_id))
-      GREMLIN_TEAM_CERTIFICATE: ((gremlin_team_certificate))
-      GREMLIN_TEAM_PRIVATE_KEY: ((gremlin_team_private_key))
-      GREMLIN_DEBUG: "true"
-      SERVICE_NAME: "s3-failure-flags-app"
-      REGION: "us-east-2"
     sidecars:
       - name: gremlin-sidecar
         command: null
@@ -38,7 +31,6 @@ applications:
           GREMLIN_DEBUG: "true"
           SERVICE_NAME: "s3-failure-flags-app"
           REGION: "us-east-2"
-          FAILURE_FLAGS_ENABLED: "true"
 ```
 
 ### Key Details
