@@ -72,3 +72,8 @@ applications:
 - Manage secrets securely using CredHub or another secrets management solution integrated with PCF.
 - Allocate sufficient memory and disk quotas to the application and sidecar to avoid resource contention.
 ```
+
+### Reference
+
+- https://github.com/cloudfoundry-samples/capi-sidecar-samples
+- http://v3-apidocs.cloudfoundry.org/version/release-candidate/#sidecars
