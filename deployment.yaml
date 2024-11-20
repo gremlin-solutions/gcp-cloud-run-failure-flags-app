@@ -51,5 +51,3 @@ spec:
               value: "s3-failure-flags-app"
             - name: REGION
               value: "us-east-2"
-            - name: FAILURE_FLAGS_ENABLED
-              value: "true"
