@@ -71,7 +71,6 @@ applications:
 - Ensure that the PCF environment supports sidecars (Cloud Foundry Application Runtime v3 or later).
 - Manage secrets securely using CredHub or another secrets management solution integrated with PCF.
 - Allocate sufficient memory and disk quotas to the application and sidecar to avoid resource contention.
-```
 
 ### Reference
 
