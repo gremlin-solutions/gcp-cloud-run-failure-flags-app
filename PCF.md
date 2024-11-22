@@ -12,7 +12,7 @@ applications:
     disk_quota: 1G
     instances: 1
     docker:
-      image: jsabo/s3-failure-flags-app:latest
+      image: <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
     env:
       S3_BUCKET: "commoncrawl"
       FAILURE_FLAGS_ENABLED: "true"

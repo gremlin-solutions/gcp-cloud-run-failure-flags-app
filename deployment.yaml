@@ -17,6 +17,7 @@ spec:
       containers:
         - name: app-container
           image: jsabo/s3-failure-flags-app:latest
+          #image: <<YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
