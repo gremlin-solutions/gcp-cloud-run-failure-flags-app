@@ -299,184 +299,270 @@ kubectl rollout restart deployment s3-failure-flags-app
 
 ## Fault Injection Examples
 
-Configure fault injection experiments using Gremlin's console, API, or CLI.
+### **1. Inject a Built-in Exception (`ValueError`)**
 
-### 1. Inject a Built-in Exception (`ValueError`)
+#### Failure Flag Selector:
+```json
+{ "method": ["GET"], "path": ["/healthz"] }
+```
 
+#### Effect:
 ```json
 {
-  "name": "list_s3_bucket_value_error",
-  "labels": {
-    "service": "s3",
-    "operation": "list_bucket",
-    "path": "/simulate-value-error"
-  },
-  "rate": 1.0,
-  "effect": {
-    "exception": "This is a custom message"
+  "exception": {
+    "className": "ValueError",
+    "message": "Injected ValueError",
+    "module": "builtins"
   }
 }
 ```
 
-**Purpose:** Simulates an application-level `ValueError` to test exception handling.
+#### Impact Probability:
+Set to `100%` for consistent testing.
 
-### 2. Inject `CustomAppException`
-
-```json
-{
-  "name": "list_s3_bucket_custom_exception",
-  "labels": {
-    "service": "s3",
-    "operation": "list_bucket",
-    "path": "/simulate-custom-exception"
-  },
-  "rate": 1.0,
-  "effect": {
-    "exception": "CustomAppException"
-  }
-}
-```
-
-**Purpose:** Simulates a custom application exception to test handling of application-specific errors.
-
-### 3. Inject `NoCredentialsError`
-
-```json
-{
-  "name": "list_s3_bucket_no_credentials",
-  "labels": {
-    "service": "s3",
-    "operation": "list_bucket",
-    "path": "/simulate-no-credentials"
-  },
-  "rate": 1.0,
-  "effect": {
-    "exception": {
-      "message": "Simulated missing AWS credentials",
-      "module": "botocore.exceptions",
-      "className": "NoCredentialsError"
-    }
-  }
-}
-```
-
-**Purpose:** Simulates missing AWS credentials to test authentication failure handling.
-
-### 4. Inject `ClientError`
-
-```json
-{
-  "name": "list_s3_bucket_client_error",
-  "labels": {
-    "service": "s3",
-    "operation": "list_bucket",
-    "path": "/simulate-client-error"
-  },
-  "rate": 1.0,
-  "effect": {
-    "exception": {
-      "message": "Simulated S3 client error",
-      "module": "botocore.exceptions",
-      "className": "ClientError"
-    }
-  }
-}
-```
-
-**Purpose:** Simulates an AWS service error to test handling of service exceptions.
-
-### 5. Inject `EndpointConnectionError`
-
-```json
-{
-  "name": "list_s3_bucket_blackhole",
-  "labels": {
-    "service": "s3",
-    "operation": "list_bucket",
-    "path": "/simulate-blackhole"
-  },
-  "rate": 1.0,
-  "effect": {
-    "exception": {
-      "message": "Simulated endpoint connection error",
-      "module": "botocore.exceptions",
-      "className": "EndpointConnectionError"
-    }
-  }
-}
-```
-
-**Purpose:** Simulates a network blackhole to test network failure handling.
-
-### 6. Simulate Latency
-
-```json
-{
-  "name": "list_s3_bucket_latency",
-  "labels": {
-    "service": "s3",
-    "operation": "list_bucket",
-    "path": "/simulate-latency"
-  },
-  "rate": 1.0,
-  "effect": {
-    "latency": {
-      "ms": 5000
-    }
-  }
-}
-```
-
-**Purpose:** Introduces a 5-second delay to simulate network latency or processing delays.
-
-**Simulating a Network Blackhole:**
-
-Set latency beyond your application's timeout settings (e.g., 60,000 ms) to simulate a blackhole.
-
-```json
-{
-  "name": "list_s3_bucket_blackhole_latency",
-  "labels": {
-    "service": "s3",
-    "operation": "list_bucket",
-    "path": "/simulate-blackhole-latency"
-  },
-  "rate": 1.0,
-  "effect": {
-    "latency": {
-      "ms": 60000
-    }
-  }
-}
-```
-
-**Purpose:** Simulates a network blackhole by introducing a 60-second delay.
-
-### 7. Modify Response Data
-
-```json
-{
-  "name": "list_s3_bucket_data_corruption",
-  "labels": {
-    "service": "s3",
-    "operation": "list_bucket",
-    "path": "/simulate-data-corruption"
-  },
-  "rate": 1.0,
-  "effect": {
-    "modify_response": true
-  }
-}
-```
-
-**Purpose:** Corrupts the response data from the S3 client to test data validation and handling.
-
-**Note on Response Validation**
-
-The application validates all responses from external services to ensure robustness against unexpected or corrupted data. When injecting faults like modified responses using Gremlin Failure Flags, the application will handle them through its standard validation logic. This approach allows you to simulate real-world scenarios where external services might return invalid data.
+**Purpose:** Simulates a `ValueError` in the `/healthz` endpoint to test application-level exception handling.
 
 ---
 
-## License
+### **2. Inject `NoCredentialsError`**
 
-This project is licensed under the Apache License 2.0. See the [`LICENSE`](LICENSE) file for details.
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/"] }
+```
+
+#### Effect:
+```json
+{
+  "exception": {
+    "className": "NoCredentialsError",
+    "message": "Simulated missing AWS credentials",
+    "module": "botocore.exceptions"
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Simulates missing AWS credentials for S3 operations, testing authentication failure handling.
+
+---
+
+### **3. Inject `ClientError`**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/sub-path"] }
+```
+
+#### Effect:
+```json
+{
+  "exception": {
+    "className": "ClientError",
+    "message": "Simulated S3 client error",
+    "module": "botocore.exceptions"
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Simulates an AWS client error during S3 operations to validate error handling.
+
+---
+
+### **4. Simulate Latency**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/"] }
+```
+
+#### Effect:
+```json
+{
+  "latency": {
+    "ms": 5000
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Introduces a 5-second delay to simulate network or processing latency.
+
+---
+
+### **5. Combine Latency and Exception**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/sub-path"] }
+```
+
+#### Effect:
+```json
+{
+  "latency": {
+    "ms": 2000
+  },
+  "exception": {
+    "className": "ClientError",
+    "message": "Simulated latency and error",
+    "module": "botocore.exceptions"
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Simulates a delay followed by an exception to test combined fault handling.
+
+---
+
+### **6. Inject `EndpointConnectionError`**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-blackhole"] }
+```
+
+#### Effect:
+```json
+{
+  "exception": {
+    "className": "EndpointConnectionError",
+    "message": "Simulated endpoint connection error",
+    "module": "botocore.exceptions"
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Simulates a network blackhole by injecting an `EndpointConnectionError`.
+
+---
+
+### **7. Simulate a Network Blackhole**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-blackhole-latency"] }
+```
+
+#### Effect:
+```json
+{
+  "latency": {
+    "ms": 60000
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Simulates a network blackhole by introducing a 60-second delay, testing timeout behaviors.
+
+---
+
+### **8. Modify Response Data**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-data-corruption"] }
+```
+
+#### Effect:
+```json
+{
+  "data": {
+    "CorruptedData": true
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Corrupts the response data returned by the S3 client to test data validation and handling.
+
+---
+
+### **9. Simulate Built-in Timeout**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-timeout"] }
+```
+
+#### Effect:
+```json
+{
+  "latency": {
+    "ms": 30000
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Simulates a timeout scenario by introducing a delay exceeding the application's timeout limit.
+
+---
+
+### **10. Inject Random Latency**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-jitter"] }
+```
+
+#### Effect:
+```json
+{
+  "latency": {
+    "ms": 2000,
+    "jitter": 500
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Simulates random latency between 2 and 2.5 seconds to mimic network jitter.
+
+---
+
+### **11. Simulate a Custom Application Exception**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-custom-exception"] }
+```
+
+#### Effect:
+```json
+{
+  "exception": {
+    "className": "CustomAppException",
+    "message": "Simulated custom application exception",
+    "module": "app.exceptions"
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Simulates a custom application-specific exception to test custom error handling.
+

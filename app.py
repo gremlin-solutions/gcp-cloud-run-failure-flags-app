@@ -22,10 +22,16 @@ app = Flask(__name__)
 def health_check():
     failure_flag = FailureFlag(
         name="health_check_request",
-        labels={"service": "monitoring", "operation": "liveness_check"},
+        labels={
+            "method": "GET",
+            "path": "/healthz"
+        },
         debug=True
     )
     active, impacted, experiments = failure_flag.invoke()
+
+    logger.info(f"HealthCheck FailureFlag invoked - Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
+
     return jsonify({"status": "healthy", "isActive": active, "isImpacted": impacted}), 200
 
 
@@ -33,10 +39,16 @@ def health_check():
 def readiness_check():
     failure_flag = FailureFlag(
         name="readiness_check_request",
-        labels={"service": "monitoring", "operation": "readiness_check"},
+        labels={
+            "method": "GET",
+            "path": "/readiness"
+        },
         debug=True
     )
     active, impacted, experiments = failure_flag.invoke()
+
+    logger.info(f"ReadinessCheck FailureFlag invoked - Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
+
     return jsonify({"status": "ready", "isActive": active, "isImpacted": impacted}), 200
 
 
@@ -45,10 +57,15 @@ def readiness_check():
 def list_s3_contents(path=""):
     failure_flag = FailureFlag(
         name="list_s3_bucket_request",
-        labels={"service": "s3", "operation": "list_bucket", "path": path},
+        labels={
+            "method": "GET",
+            "path": f"/{path}" if path else "/"
+        },
         debug=True
     )
     active, impacted, experiments = failure_flag.invoke()
+
+    logger.info(f"ListS3Contents FailureFlag invoked - Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
 
     s3_client = boto3.client("s3")
     response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=path, Delimiter="/")
