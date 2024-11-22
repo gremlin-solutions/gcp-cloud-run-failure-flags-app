@@ -11,7 +11,7 @@ This application demonstrates fault injection using Gremlin Failure Flags in a F
   - **Exception Injection:** Simulate application and AWS S3 exceptions.
   - **Latency Injection:** Introduce network delays.
   - **Response Modification:** Corrupt responses from external services.
-- **Custom Behaviors:** Supports advanced fault injection scenarios with proper behavior chain maintenance.
+- **Custom Behaviors:** Supports advanced fault injection scenarios.
 
 ## Prerequisites
 
