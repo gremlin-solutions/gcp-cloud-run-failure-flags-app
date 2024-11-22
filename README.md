@@ -282,6 +282,10 @@ kubectl logs <POD_NAME> -c gremlin-sidecar
 When you push a new image with the `latest` tag, ensure Kubernetes pulls the updated image by restarting the deployment:
 
 ```bash
+docker build --platform linux/amd64 -t jsabo/s3-failure-flags-app:latest .
+#docker build --platform linux/amd64 -t <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest .
+docker push jsabo/s3-failure-flags-app:latest
+#docker push <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
 kubectl rollout restart deployment s3-failure-flags-app
 ```
 
