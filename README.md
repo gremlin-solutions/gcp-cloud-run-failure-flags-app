@@ -295,11 +295,58 @@ kubectl rollout restart deployment s3-failure-flags-app
 - **Navigate to:** `Failure Flags` → `Services`.
 - **Select your application and start experiments.**
 
----
-
 ## Fault Injection Examples
 
-### **1. Inject a Built-in Exception (`ValueError`)**
+---
+
+### **1. Simulate Latency**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/"] }
+```
+
+#### Effect:
+```json
+{
+  "latency": {
+    "ms": 5000
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Introduces a 5-second delay to simulate network or processing latency.
+
+---
+
+### **2. Inject Random Latency**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-jitter"] }
+```
+
+#### Effect:
+```json
+{
+  "latency": {
+    "ms": 2000,
+    "jitter": 500
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Simulates random latency between 2 and 2.5 seconds to mimic network jitter.
+
+---
+
+### **3. Inject a Built-in Exception (`ValueError`)**
 
 #### Failure Flag Selector:
 ```json
@@ -324,7 +371,7 @@ Set to `100%` for consistent testing.
 
 ---
 
-### **2. Inject `NoCredentialsError`**
+### **4. Inject `NoCredentialsError`**
 
 #### Failure Flag Selector:
 ```json
@@ -349,7 +396,7 @@ Set to `100%` for consistent testing.
 
 ---
 
-### **3. Inject `ClientError`**
+### **5. Inject `ClientError`**
 
 #### Failure Flag Selector:
 ```json
@@ -374,30 +421,7 @@ Set to `100%` for consistent testing.
 
 ---
 
-### **4. Simulate Latency**
-
-#### Failure Flag Selector:
-```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/"] }
-```
-
-#### Effect:
-```json
-{
-  "latency": {
-    "ms": 5000
-  }
-}
-```
-
-#### Impact Probability:
-Set to `100%` for consistent testing.
-
-**Purpose:** Introduces a 5-second delay to simulate network or processing latency.
-
----
-
-### **5. Combine Latency and Exception**
+### **6. Combine Latency and Exception**
 
 #### Failure Flag Selector:
 ```json
@@ -421,11 +445,11 @@ Set to `100%` for consistent testing.
 #### Impact Probability:
 Set to `100%` for consistent testing.
 
-**Purpose:** Simulates a delay followed by an exception to test combined fault handling.
+**Purpose:** Simulates a delay followed by an AWS client error during S3 operations to validate error handling.
 
 ---
 
-### **6. Inject `EndpointConnectionError`**
+### **7. Inject `EndpointConnectionError`**
 
 #### Failure Flag Selector:
 ```json
@@ -450,7 +474,7 @@ Set to `100%` for consistent testing.
 
 ---
 
-### **7. Simulate a Network Blackhole**
+### **8. Simulate a Network Blackhole**
 
 #### Failure Flag Selector:
 ```json
@@ -473,7 +497,7 @@ Set to `100%` for consistent testing.
 
 ---
 
-### **8. Modify Response Data**
+### **9. Modify Response Data**
 
 #### Failure Flag Selector:
 ```json
@@ -496,54 +520,7 @@ Set to `100%` for consistent testing.
 
 ---
 
-### **9. Simulate Built-in Timeout**
-
-#### Failure Flag Selector:
-```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-timeout"] }
-```
-
-#### Effect:
-```json
-{
-  "latency": {
-    "ms": 30000
-  }
-}
-```
-
-#### Impact Probability:
-Set to `100%` for consistent testing.
-
-**Purpose:** Simulates a timeout scenario by introducing a delay exceeding the application's timeout limit.
-
----
-
-### **10. Inject Random Latency**
-
-#### Failure Flag Selector:
-```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-jitter"] }
-```
-
-#### Effect:
-```json
-{
-  "latency": {
-    "ms": 2000,
-    "jitter": 500
-  }
-}
-```
-
-#### Impact Probability:
-Set to `100%` for consistent testing.
-
-**Purpose:** Simulates random latency between 2 and 2.5 seconds to mimic network jitter.
-
----
-
-### **11. Simulate a Custom Application Exception**
+### **10. Simulate a Custom Application Exception**
 
 #### Failure Flag Selector:
 ```json
