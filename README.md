@@ -396,32 +396,7 @@ Set to `100%` for consistent testing.
 
 ---
 
-### **5. Inject `ClientError`**
-
-#### Failure Flag Selector:
-```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/sub-path"] }
-```
-
-#### Effect:
-```json
-{
-  "exception": {
-    "className": "ClientError",
-    "message": "Simulated S3 client error",
-    "module": "botocore.exceptions"
-  }
-}
-```
-
-#### Impact Probability:
-Set to `100%` for consistent testing.
-
-**Purpose:** Simulates an AWS client error during S3 operations to validate error handling.
-
----
-
-### **6. Combine Latency and Exception**
+### **5. Combine Latency and Exception**
 
 #### Failure Flag Selector:
 ```json
@@ -449,7 +424,7 @@ Set to `100%` for consistent testing.
 
 ---
 
-### **7. Inject `EndpointConnectionError`**
+### **6. Inject `EndpointConnectionError`**
 
 #### Failure Flag Selector:
 ```json
@@ -474,7 +449,7 @@ Set to `100%` for consistent testing.
 
 ---
 
-### **8. Simulate a Network Blackhole**
+### **7. Simulate a Network Blackhole**
 
 #### Failure Flag Selector:
 ```json
@@ -494,6 +469,31 @@ Set to `100%` for consistent testing.
 Set to `100%` for consistent testing.
 
 **Purpose:** Simulates a network blackhole by introducing a 60-second delay, testing timeout behaviors.
+
+---
+
+### **8. Simulate a Custom Application Exception**
+
+#### Failure Flag Selector:
+```json
+{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-custom-exception"] }
+```
+
+#### Effect:
+```json
+{
+  "exception": {
+    "className": "CustomAppException",
+    "message": "Simulated custom application exception",
+    "module": "app.exceptions"
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%` for consistent testing.
+
+**Purpose:** Simulates a custom application-specific exception to test custom error handling.
 
 ---
 
@@ -517,29 +517,4 @@ Set to `100%` for consistent testing.
 Set to `100%` for consistent testing.
 
 **Purpose:** Corrupts the response data returned by the S3 client to test data validation and handling.
-
----
-
-### **10. Simulate a Custom Application Exception**
-
-#### Failure Flag Selector:
-```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-custom-exception"] }
-```
-
-#### Effect:
-```json
-{
-  "exception": {
-    "className": "CustomAppException",
-    "message": "Simulated custom application exception",
-    "module": "app.exceptions"
-  }
-}
-```
-
-#### Impact Probability:
-Set to `100%` for consistent testing.
-
-**Purpose:** Simulates a custom application-specific exception to test custom error handling.
 
