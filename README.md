@@ -4,14 +4,34 @@ This application demonstrates fault injection using Gremlin Failure Flags in a F
 
 ## Features
 
-- **List S3 Bucket Contents:** Displays the contents of a specified S3 bucket.
-- **Configurable Settings:** Customize the target S3 bucket via environment variables.
-- **Gremlin Integration:** Integrates with the Gremlin Failure Flags Sidecar for chaos engineering experiments.
-- **Fault Injection Capabilities:**
-  - **Exception Injection:** Simulate application and AWS S3 exceptions.
-  - **Latency Injection:** Introduce network delays.
-  - **Response Modification:** Corrupt responses from external services.
-- **Custom Behaviors:** Supports advanced fault injection scenarios.
+- **S3 Bucket Listing:**
+  - Displays the contents of a specified S3 bucket.
+  - Supports directory navigation within S3 buckets.
+
+- **Configurable Settings:**
+  - Customize the target S3 bucket via environment variables.
+  - Easy integration with any public or private bucket.
+
+- **Fault Injection Capabilities via Gremlin Failure Flags:**
+  - **Latency Injection:**
+    - Simulates network delays for processing or external API calls.
+    - Configurable latency with optional random jitter.
+  - **Exception Injection:**
+    - Simulates application and AWS-specific exceptions.
+    - Built-in and custom exceptions supported (e.g., `ValueError`, `ClientError`).
+  - **Network Faults:**
+    - Simulates endpoint connection errors and blackhole scenarios.
+  - **Response Modification:**
+    - Corrupts or modifies response data to validate handling of unexpected outputs.
+  - **Combination Faults:**
+    - Injects multiple faults (e.g., latency and exceptions) simultaneously to mimic complex scenarios.
+
+- **Gremlin Sidecar Integration:**
+  - Easy deployment in Kubernetes with the Gremlin Failure Flags Sidecar.
+  - Use Gremlin's UI or CLI to configure and trigger experiments.
+
+- **Health and Readiness Probes:**
+  - Includes endpoints (`/healthz` and `/readinessz`) for Kubernetes liveness and readiness probes with fault injection testing.
 
 ## Prerequisites
 
@@ -485,7 +505,7 @@ Set to `100%` for consistent testing.
   "exception": {
     "className": "CustomAppException",
     "message": "Simulated custom application exception",
-    "module": "app.exceptions"
+    "module": "__main__"
   }
 }
 ```
