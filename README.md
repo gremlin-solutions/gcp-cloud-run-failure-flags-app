@@ -292,10 +292,14 @@ kubectl get pods
 Check Gremlin Sidecar logs:
 
 ```bash
-kubectl logs <POD_NAME> -c gremlin-sidecar
+kubeclt logs -l app=s3-failure-flags-app -c gremlin-sidecar -f
 ```
 
-*Replace `<POD_NAME>` with the actual name of your pod.*
+Check Application logs:
+
+```bash
+kubectl logs -l app=s3-failure-flags-app -c app-container -f
+```
 
 ### 5. Roll Out a New Docker Image
 
