@@ -1,5 +1,6 @@
 import os
 import boto3
+import botocore
 import logging
 from flask import Flask, jsonify, render_template
 
@@ -7,7 +8,7 @@ from flask import Flask, jsonify, render_template
 from failureflags import FailureFlag
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 # Environment Variables
@@ -20,52 +21,53 @@ app = Flask(__name__)
 
 @app.route("/healthz", methods=["GET"])
 def health_check():
+    """
+    Health check endpoint for Kubernetes liveness probes.
+    Includes fault injection capabilities via FailureFlags.
+    """
     failure_flag = FailureFlag(
         name="health_check_request",
-        labels={
-            "method": "GET",
-            "path": "/healthz"
-        },
+        labels={"path": "/healthz"},
         debug=True
     )
     active, impacted, experiments = failure_flag.invoke()
 
-    logger.info(f"HealthCheck FailureFlag invoked - Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
-
+    logger.info(f"[HealthCheck] Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
     return jsonify({"status": "healthy", "isActive": active, "isImpacted": impacted}), 200
 
 
 @app.route("/readiness", methods=["GET"])
 def readiness_check():
+    """
+    Readiness check endpoint for Kubernetes readiness probes.
+    Includes fault injection capabilities via FailureFlags.
+    """
     failure_flag = FailureFlag(
         name="readiness_check_request",
-        labels={
-            "method": "GET",
-            "path": "/readiness"
-        },
+        labels={"path": "/readiness"},
         debug=True
     )
     active, impacted, experiments = failure_flag.invoke()
 
-    logger.info(f"ReadinessCheck FailureFlag invoked - Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
-
+    logger.info(f"[ReadinessCheck] Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
     return jsonify({"status": "ready", "isActive": active, "isImpacted": impacted}), 200
 
 
 @app.route("/")
 @app.route("/<path:path>")
 def list_s3_contents(path=""):
+    """
+    Lists objects in the specified S3 bucket path.
+    Includes fault injection for testing scenarios.
+    """
     failure_flag = FailureFlag(
         name="list_s3_bucket_request",
-        labels={
-            "method": "GET",
-            "path": f"/{path}" if path else "/"
-        },
+        labels={"path": f"/{path}" if path else "/"},
         debug=True
     )
     active, impacted, experiments = failure_flag.invoke()
 
-    logger.info(f"ListS3Contents FailureFlag invoked - Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
+    logger.info(f"[ListS3Contents] Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
 
     s3_client = boto3.client("s3")
     response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=path, Delimiter="/")
@@ -94,4 +96,3 @@ def list_s3_contents(path=""):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=PORT, debug=DEBUG_MODE)
-
