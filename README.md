@@ -327,7 +327,7 @@ kubectl rollout restart deployment s3-failure-flags-app
 
 #### Failure Flag Selector:
 ```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/"] }
+{ "path": ["/latency-test"] }
 ```
 
 #### Effect:
@@ -350,7 +350,7 @@ Set to `100%` for consistent testing.
 
 #### Failure Flag Selector:
 ```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-jitter"] }
+{ "path": ["/simulate-jitter"] }
 ```
 
 #### Effect:
@@ -374,7 +374,7 @@ Set to `100%` for consistent testing.
 
 #### Failure Flag Selector:
 ```json
-{ "method": ["GET"], "path": ["/healthz"] }
+{ "path": ["/inject-exception"] }
 ```
 
 #### Effect:
@@ -399,7 +399,7 @@ Set to `100%` for consistent testing.
 
 #### Failure Flag Selector:
 ```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/"] }
+{ "path": ["/inject-exception"] }
 ```
 
 #### Effect:
@@ -424,7 +424,7 @@ Set to `100%` for consistent testing.
 
 #### Failure Flag Selector:
 ```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/sub-path"] }
+{ "path": ["/inject-latency-exception"] }
 ```
 
 #### Effect:
@@ -452,7 +452,7 @@ Set to `100%` for consistent testing.
 
 #### Failure Flag Selector:
 ```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-blackhole"] }
+{ "path": ["/simulate-blackhole"] }
 ```
 
 #### Effect:
@@ -477,7 +477,7 @@ Set to `100%` for consistent testing.
 
 #### Failure Flag Selector:
 ```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-blackhole-latency"] }
+{ "path": ["/simulate-blackhole-latency"] }
 ```
 
 #### Effect:
@@ -500,7 +500,7 @@ Set to `100%` for consistent testing.
 
 #### Failure Flag Selector:
 ```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-custom-exception"] }
+{ "path": ["/simulate-custom-exception"] }
 ```
 
 #### Effect:
@@ -525,7 +525,7 @@ Set to `100%` for consistent testing.
 
 #### Failure Flag Selector:
 ```json
-{ "service": "s3", "operation": "list_bucket", "path": ["/simulate-data-corruption"] }
+{ "path": ["/simulate-data-corruption"] }
 ```
 
 #### Effect:
@@ -542,3 +542,44 @@ Set to `100%` for consistent testing.
 
 **Purpose:** Corrupts the response data returned by the S3 client to test data validation and handling.
 
+---
+
+### **10. Fail a Specific Availability Zone**
+
+#### Failure Flag Selector:
+```json
+{ "path": ["/healthz"], "availability_zone": ["us-east-1a"] }
+```
+
+#### Effect:
+```json
+{
+  "latency": {
+    "ms": 30000
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%`.
+
+---
+
+### **11. Fail a Specific Region**
+
+#### Failure Flag Selector:
+```json
+{ "path": ["/healthz"], "region": ["us-east-1"] }
+```
+
+#### Effect:
+```json
+{
+  "latency": {
+    "ms": 30000
+  }
+}
+```
+
+#### Impact Probability:
+Set to `100%`.
