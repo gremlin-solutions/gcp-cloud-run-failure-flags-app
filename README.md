@@ -150,8 +150,8 @@ Replace placeholders in `gremlin-team-secret-template.yaml` and apply:
 | Network Fault           | Simulate Blackhole         | `{ "path": ["/simulate-blackhole-latency"] }`                   | `{ "latency": { "ms": 60000 } }`                                                                                                                        |
 | Exception               | Inject Custom Exception  | `{ "path": ["/inject-custom-exception"] }`                    | `{ "exception": { "className": "CustomAppException", "message": "Custom application exception", "module": "__main__" } }`                     |
 | Data Corruption         | Modify Response Data       | `{ "path": ["/simulate-data-corruption"] }`                     | `{ "data": { "CorruptedData": true } }`                                                                                                                 |
-| Availability Zone Fault | Fail Specific AZ           | `{ "path": ["/healthz"], "availability_zone": ["us-east-1a"] }` | `{ "latency": { "ms": 30000 } }`                                                                                                                        |
-| Region Fault            | Fail Specific Region       | `{ "path": ["/healthz"], "region": ["us-east-1"] }`             | `{ "latency": { "ms": 30000 } }`                                                                                                                        |
+| Availability Zone Fault | Fail Specific AZ           | `{ "path": ["/healthz"], "availability_zone": ["us-east-1a"] }` | `{ "latency": { "ms": 60000 } }`                                                                                                                        |
+| Region Fault            | Fail Specific Region       | `{ "path": ["/healthz"], "region": ["us-east-1"] }`             | `{ "latency": { "ms": 60000 } }`                                                                                                                        |
 
 ## Troubleshooting
 
