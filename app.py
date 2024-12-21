@@ -7,26 +7,27 @@ from flask import Flask, jsonify, render_template
 from failureflags import FailureFlag  # Import the FailureFlags SDK for fault injection
 
 # Configure logging
-# Logs will include timestamps, log levels, and messages for easier debugging.
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 # Environment Variables
-# Configure S3 bucket, debug mode, and application port via environment variables.
 S3_BUCKET = os.getenv("S3_BUCKET", "commoncrawl")  # Default to "commoncrawl" if not set
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"  # Enable debug mode if "true"
 PORT = int(os.getenv("PORT", 8080))  # Default to port 8080
 
 # Initialize Flask App
-# Flask is used to create the API endpoints.
 app = Flask(__name__)
 
-def get_region_and_az():
+# Global variables for region and availability zone
+REGION = "unknown"
+AVAILABILITY_ZONE = "unknown"
+
+def initialize_metadata():
     """
-    Retrieve the region and availability zone using AWS Instance Metadata Service (IMDSv2).
+    Retrieve the region and availability zone using AWS Instance Metadata Service (IMDSv2) and store globally.
     """
+    global REGION, AVAILABILITY_ZONE
     try:
-        # Obtain a session token for the metadata service
         token_response = requests.put(
             "http://169.254.169.254/latest/api/token",
             headers={"X-aws-ec2-metadata-token-ttl-seconds": "21600"},  # Token valid for 6 hours
@@ -35,45 +36,39 @@ def get_region_and_az():
         token_response.raise_for_status()
         token = token_response.text
 
-        # Retrieve the availability zone
         az_response = requests.get(
             "http://169.254.169.254/latest/meta-data/placement/availability-zone",
             headers={"X-aws-ec2-metadata-token": token},
             timeout=2
         )
         az_response.raise_for_status()
-        az = az_response.text
-
-        # Derive the region from the availability zone
-        region = az[:-1]  # Remove the last character to get the region
-        return region, az
+        AVAILABILITY_ZONE = az_response.text
+        REGION = AVAILABILITY_ZONE[:-1]  # Derive region by removing the last character
+        logger.info(f"Metadata initialized: Region = {REGION}, Availability Zone = {AVAILABILITY_ZONE}")
     except Exception as e:
-        logger.error(f"Failed to retrieve region or availability zone: {e}")
-        return "unknown", "unknown"
+        logger.error(f"Failed to retrieve metadata: {e}")
 
 @app.route("/healthz", methods=["GET"])
 def health_check():
     """
     Health check endpoint for Kubernetes liveness probes.
-    Includes fault injection capabilities via FailureFlags.
     """
-    region, az = get_region_and_az()
     failure_flag = FailureFlag(
         name="health_check_request",
         labels={
             "path": "/healthz",
-            "region": region,
-            "availability_zone": az
+            "region": REGION,
+            "availability_zone": AVAILABILITY_ZONE
         },
         debug=True
     )
     active, impacted, experiments = failure_flag.invoke()
 
-    logger.info(f"[HealthCheck] Region: {region}, AZ: {az}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
+    logger.info(f"[HealthCheck] Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
     return jsonify({
         "status": "healthy",
-        "region": region,
-        "availability_zone": az,
+        "region": REGION,
+        "availability_zone": AVAILABILITY_ZONE,
         "isActive": active,
         "isImpacted": impacted
     }), 200
@@ -82,25 +77,23 @@ def health_check():
 def readiness_check():
     """
     Readiness check endpoint for Kubernetes readiness probes.
-    Includes fault injection capabilities via FailureFlags.
     """
-    region, az = get_region_and_az()
     failure_flag = FailureFlag(
         name="readiness_check_request",
         labels={
             "path": "/readiness",
-            "region": region,
-            "availability_zone": az
+            "region": REGION,
+            "availability_zone": AVAILABILITY_ZONE
         },
         debug=True
     )
     active, impacted, experiments = failure_flag.invoke()
 
-    logger.info(f"[ReadinessCheck] Region: {region}, AZ: {az}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
+    logger.info(f"[ReadinessCheck] Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
     return jsonify({
         "status": "ready",
-        "region": region,
-        "availability_zone": az,
+        "region": REGION,
+        "availability_zone": AVAILABILITY_ZONE,
         "isActive": active,
         "isImpacted": impacted
     }), 200
@@ -112,19 +105,18 @@ def list_s3_contents(path=""):
     Lists objects in the specified S3 bucket path.
     Includes fault injection for testing scenarios.
     """
-    region, az = get_region_and_az()
     failure_flag = FailureFlag(
         name="list_s3_bucket_request",
         labels={
             "path": f"/{path}" if path else "/",
-            "region": region,
-            "availability_zone": az
+            "region": REGION,
+            "availability_zone": AVAILABILITY_ZONE
         },
         debug=True
     )
     active, impacted, experiments = failure_flag.invoke()
 
-    logger.info(f"[ListS3Contents] Region: {region}, AZ: {az}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
+    logger.info(f"[ListS3Contents] Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
 
     # Initialize the S3 client
     s3_client = boto3.client("s3")
@@ -157,6 +149,7 @@ def list_s3_contents(path=""):
     return render_template("index.html", bucket=S3_BUCKET, path=path, objects=items)
 
 if __name__ == "__main__":
-    # Run the Flask application
+    # Initialize metadata before starting the Flask application
+    initialize_metadata()
     app.run(host="0.0.0.0", port=PORT, debug=DEBUG_MODE)
 
