@@ -22,6 +22,10 @@ app = Flask(__name__)
 REGION = "unknown"
 AVAILABILITY_ZONE = "unknown"
 
+# Custom Exception for Fault Injection
+class CustomAppException(Exception):
+    pass
+
 def initialize_metadata():
     """
     Retrieve the region and availability zone using AWS Instance Metadata Service (IMDSv2) and store globally.
