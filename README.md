@@ -152,6 +152,9 @@ Replace placeholders in `gremlin-team-secret-template.yaml` and apply:
 | Availability Zone Fault | Simulate AZ-Specific Latency        | `{ "path": ["/healthz"], "availability_zone": ["us-east-1a"] }` | `{ "latency": { "ms": 60000 } }`                                                                                                                        |
 | Region Fault            | Simulate Region-Specific Latency    | `{ "path": ["/healthz"], "region": ["us-east-1"] }`             | `{ "latency": { "ms": 60000 } }`                                                                                                                        |
 | Service Degradation     | Simulate Readiness Probe Latency    | `{ "path": ["/readiness"] }`                                    | `{ "latency": { "ms": 60000 } }`                                                                                                                        |
+| HTTP Response Simulation | Simulate AWS Rate Limiting (429)    | `{ "path": ["/simulate-http-response"] }`                       | `{ "httpStatus": { "statusCode": 429, "message": "Too Many Requests", "retryAfter": 5 } }`                                                              |
+| HTTP Response Simulation | Simulate Service Unavailability (503) | `{ "path": ["/simulate-http-response"] }`                       | `{ "httpStatus": { "statusCode": 503, "message": "Service Unavailable", "retryAfter": 30 } }`                                                           |
+
 
 ## Troubleshooting
 

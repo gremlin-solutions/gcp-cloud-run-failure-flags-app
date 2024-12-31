@@ -4,7 +4,9 @@ import botocore
 import requests
 import logging
 from flask import Flask, jsonify, render_template
+
 from failureflags import FailureFlag  # Import the FailureFlags SDK for fault injection
+from behaviors import simulate_http_response  # Import the custom behavior from behaviors.py
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -101,6 +103,49 @@ def readiness_check():
         "isActive": active,
         "isImpacted": impacted
     }), 200
+
+@app.route("/simulate-http-response", methods=["GET"])
+def simulate_http_response_route():
+    """
+    Simulate various HTTP responses, including AWS throttling and other status codes.
+    """
+    failure_flag = FailureFlag(
+        name="simulate_http_response_request",
+        labels={
+            "path": "/simulate-http-response",
+            "region": REGION,
+            "availability_zone": AVAILABILITY_ZONE
+        },
+        behavior=simulate_http_response,  # Use the custom behavior
+        debug=True
+    )
+
+    # Invoke the failure flag
+    active, impacted, experiments = failure_flag.invoke()
+
+    # Default response values
+    status = 200
+    message = "Default behavior executed"
+    headers = {}
+
+    # Check if a custom response was generated
+    if isinstance(impacted, dict):
+        status = impacted.get("status", 200)
+        message = impacted.get("body", {}).get("message", "Default behavior executed")
+        headers = impacted.get("headers", {})
+
+    # Log the simulated HTTP response
+    logger.info(f"[SimulateHttpResponse] Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {bool(impacted)}, Experiments: {experiments}")
+
+    # Return a consistent response structure
+    return jsonify({
+        "status": status,
+        "region": REGION,
+        "availability_zone": AVAILABILITY_ZONE,
+        "isActive": active,
+        "isImpacted": bool(impacted),
+        "message": message
+    }), status, headers
 
 @app.route("/")
 @app.route("/<path:path>")
