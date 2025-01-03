@@ -14,6 +14,13 @@ spec:
       labels:
         app: s3-failure-flags-app
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: s3-failure-flags-app
+              topologyKey: topology.kubernetes.io/zone
       containers:
         - name: app-container
           image: jsabo/s3-failure-flags-app:latest
@@ -64,5 +71,3 @@ spec:
               value: "true"
             - name: SERVICE_NAME
               value: "s3-failure-flags-app"
-            - name: REGION
-              value: "us-east-2"
