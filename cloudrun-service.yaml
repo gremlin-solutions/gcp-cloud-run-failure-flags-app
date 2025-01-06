@@ -1,0 +1,49 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: 's3-failure-flags-app'
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '1'
+        run.googleapis.com/execution-environment: 'gen1'
+    spec:
+      containers:
+      - name: 'app-container'
+        image: 'jsabo/s3-failure-flags-app:latest'
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 8080
+        env:
+        - name: S3_BUCKET
+          value: 'commoncrawl'
+        - name: CLOUD
+          value: 'Google'
+        - name: FAILURE_FLAGS_ENABLED
+          value: 'true'
+
+      - name: failure-flags-sidecar
+        image: gremlin/failure-flags-sidecar:latest
+        env:
+        - name: GREMLIN_SIDECAR_ENABLED
+          value: 'true'
+        - name: GREMLIN_TEAM_ID
+          valueFrom:
+            secretKeyRef:
+              name: gremlin-team-secret
+              key: team_id
+        - name: GREMLIN_TEAM_CERTIFICATE
+          valueFrom:
+            secretKeyRef:
+              name: gremlin-team-secret
+              key: team_certificate
+        - name: GREMLIN_TEAM_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gremlin-team-secret
+              key: team_private_key
+        - name: GREMLIN_DEBUG
+          value: 'true'
+        - name: SERVICE_NAME
+          value: 's3-failure-flags-app'
