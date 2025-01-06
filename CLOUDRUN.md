@@ -26,7 +26,7 @@
 
 4. **Grant Access to Secrets**:
    ```bash
-   SERVICE_ACCOUNT="801342741865-compute@developer.gserviceaccount.com" # Replace with your service account
+   SERVICE_ACCOUNT="<PROJECT_NUMBER>-compute@developer.gserviceaccount.com" # Replace with your service account
 
    gcloud secrets add-iam-policy-binding gremlin-team-id \
      --member="serviceAccount:$SERVICE_ACCOUNT" \
