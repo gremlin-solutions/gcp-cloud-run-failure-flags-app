@@ -31,6 +31,8 @@ spec:
           env:
             - name: S3_BUCKET
               value: "commoncrawl"
+            - name: CLOUD
+              value: "Amazon"
             - name: FAILURE_FLAGS_ENABLED
               value: "true"
           readinessProbe:
