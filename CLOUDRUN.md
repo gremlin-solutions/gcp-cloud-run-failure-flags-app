@@ -7,3 +7,4 @@
 - https://cloud.google.com/sdk/docs/install
 - https://cloud.google.com/run/docs/quickstarts/build-and-deploy/deploy-python-service
 - https://cloud.google.com/run/docs/container-contract
+- https://cloud.google.com/run/docs/deploying#yaml
