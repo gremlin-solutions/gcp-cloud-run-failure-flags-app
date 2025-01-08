@@ -113,6 +113,18 @@
    ```bash
    gcloud logging read 'resource.labels.service_name="s3-failure-flags-app"' --limit=100
    ```
+5. **Tail Logs**:
+   Tail the logs to ensure the service is working correctly:
+   ```bash
+   while true; do
+     gcloud logging read \
+       'resource.labels.service_name="s3-failure-flags-app" AND labels.container_name="failure-flags-sidecar"' \
+       --freshness=5m \
+       --limit=100 \
+       --format="table(timestamp, severity, textPayload)"
+     sleep 5
+   done
+   ```
 
 ---
 
