@@ -7,7 +7,7 @@ metadata:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-node-labels: kubernetes.io/os=linux
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/healthcheck-path: /healthz # Health check path
+    alb.ingress.kubernetes.io/healthcheck-path: /liveness # Health check path
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15" # Optional, defaults to 30
     alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"  # Optional, defaults to 5
     alb.ingress.kubernetes.io/healthcheck-port: "8080" # Optional, use the Flask app port

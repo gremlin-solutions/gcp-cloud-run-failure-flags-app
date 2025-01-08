@@ -30,39 +30,65 @@ class CustomAppException(Exception):
 
 def initialize_metadata():
     """
-    Retrieve the region and availability zone using AWS Instance Metadata Service (IMDSv2) and store globally.
+    Retrieve the region and availability zone using cloud provider metadata services.
+    Works for AWS and Google Cloud. Also fetches the CLOUD environment variable.
     """
-    global REGION, AVAILABILITY_ZONE
-    try:
-        token_response = requests.put(
-            "http://169.254.169.254/latest/api/token",
-            headers={"X-aws-ec2-metadata-token-ttl-seconds": "21600"},  # Token valid for 6 hours
-            timeout=2
-        )
-        token_response.raise_for_status()
-        token = token_response.text
+    global CLOUD, REGION, AVAILABILITY_ZONE
+    CLOUD = os.getenv("CLOUD", "unknown").lower()  # Retrieve the CLOUD environment variable
 
-        az_response = requests.get(
-            "http://169.254.169.254/latest/meta-data/placement/availability-zone",
-            headers={"X-aws-ec2-metadata-token": token},
-            timeout=2
-        )
-        az_response.raise_for_status()
-        AVAILABILITY_ZONE = az_response.text
-        REGION = AVAILABILITY_ZONE[:-1]  # Derive region by removing the last character
-        logger.info(f"Metadata initialized: Region = {REGION}, Availability Zone = {AVAILABILITY_ZONE}")
-    except Exception as e:
-        logger.error(f"Failed to retrieve metadata: {e}")
+    if CLOUD == "aws":
+        try:
+            token_response = requests.put(
+                "http://169.254.169.254/latest/api/token",
+                headers={"X-aws-ec2-metadata-token-ttl-seconds": "21600"},  # Token valid for 6 hours
+                timeout=2
+            )
+            token_response.raise_for_status()
+            token = token_response.text
 
-@app.route("/healthz", methods=["GET"])
-def health_check():
+            az_response = requests.get(
+                "http://169.254.169.254/latest/meta-data/placement/availability-zone",
+                headers={"X-aws-ec2-metadata-token": token},
+                timeout=2
+            )
+            az_response.raise_for_status()
+            AVAILABILITY_ZONE = az_response.text
+            REGION = AVAILABILITY_ZONE[:-1]  # Derive region by removing the last character
+            logger.info(f"AWS Metadata initialized: Region = {REGION}, Availability Zone = {AVAILABILITY_ZONE}")
+        except Exception as e:
+            logger.error(f"Failed to retrieve AWS metadata: {e}")
+
+    elif CLOUD == "gcp":
+        try:
+            metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance"
+            headers = {"Metadata-Flavor": "Google"}
+
+            region_response = requests.get(
+                f"{metadata_url}/zone", headers=headers, timeout=2
+            )
+            region_response.raise_for_status()
+            zone = region_response.text.split("/")[-1]
+            AVAILABILITY_ZONE = zone
+            REGION = "-".join(zone.split("-")[:2])  # Derive region from zone
+            logger.info(f"GCP Metadata initialized: Region = {REGION}, Availability Zone = {AVAILABILITY_ZONE}")
+        except Exception as e:
+            logger.error(f"Failed to retrieve GCP metadata: {e}")
+
+    else:
+        logger.warning("CLOUD environment variable not set or unknown. Defaulting to 'unknown'.")
+
+    logger.info(f"Metadata initialization completed: Cloud = {CLOUD}, Region = {REGION}, Availability Zone = {AVAILABILITY_ZONE}")
+
+@app.route("/liveness", methods=["GET"])
+def liveness_check():
     """
-    Health check endpoint for Kubernetes liveness probes.
+    Liveness check endpoint for Kubernetes or Cloud Run liveness probes.
     """
     failure_flag = FailureFlag(
-        name="health_check_request",
+        name="liveness_check_request",
         labels={
-            "path": "/healthz",
+            "path": "/liveness",
+            "cloud": CLOUD,
             "region": REGION,
             "availability_zone": AVAILABILITY_ZONE
         },
@@ -70,9 +96,10 @@ def health_check():
     )
     active, impacted, experiments = failure_flag.invoke()
 
-    logger.info(f"[HealthCheck] Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
+    logger.info(f"[LivenessCheck] Cloud: {CLOUD}, Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
     return jsonify({
         "status": "healthy",
+        "cloud": CLOUD,
         "region": REGION,
         "availability_zone": AVAILABILITY_ZONE,
         "isActive": active,
@@ -88,6 +115,7 @@ def readiness_check():
         name="readiness_check_request",
         labels={
             "path": "/readiness",
+            "cloud": CLOUD,
             "region": REGION,
             "availability_zone": AVAILABILITY_ZONE
         },
@@ -95,9 +123,10 @@ def readiness_check():
     )
     active, impacted, experiments = failure_flag.invoke()
 
-    logger.info(f"[ReadinessCheck] Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
+    logger.info(f"[ReadinessCheck] Cloud: {CLOUD}, Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
     return jsonify({
         "status": "ready",
+        "cloud": CLOUD,
         "region": REGION,
         "availability_zone": AVAILABILITY_ZONE,
         "isActive": active,
@@ -113,6 +142,7 @@ def simulate_http_response_route():
         name="simulate_http_response_request",
         labels={
             "path": "/simulate-http-response",
+            "cloud": CLOUD,
             "region": REGION,
             "availability_zone": AVAILABILITY_ZONE
         },
@@ -135,11 +165,12 @@ def simulate_http_response_route():
         headers = impacted.get("headers", {})
 
     # Log the simulated HTTP response
-    logger.info(f"[SimulateHttpResponse] Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {bool(impacted)}, Experiments: {experiments}")
+    logger.info(f"[SimulateHttpResponse] Cloud: {CLOUD}, Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {bool(impacted)}, Experiments: {experiments}")
 
     # Return a consistent response structure
     return jsonify({
         "status": status,
+        "cloud": CLOUD,
         "region": REGION,
         "availability_zone": AVAILABILITY_ZONE,
         "isActive": active,
@@ -152,29 +183,34 @@ def simulate_http_response_route():
 def list_s3_contents(path=""):
     """
     Lists objects in the specified S3 bucket path.
-    Includes fault injection for testing scenarios.
+    Supports both public and private buckets.
     """
-    failure_flag = FailureFlag(
-        name="list_s3_bucket_request",
-        labels={
-            "path": f"/{path}" if path else "/",
-            "region": REGION,
-            "availability_zone": AVAILABILITY_ZONE
-        },
-        debug=True
-    )
-    active, impacted, experiments = failure_flag.invoke()
+    logger.info(f"Processing S3 request for path: {path}")
 
-    logger.info(f"[ListS3Contents] Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
-
-    # Initialize the S3 client
-    s3_client = boto3.client("s3")
     try:
-        # Fetch the list of objects from the specified S3 bucket and path
+        # Attempt to create an authenticated S3 client
+        logger.info("Attempting to access S3 bucket with IAM credentials...")
+        s3_client = boto3.client("s3", region_name=AWS_REGION)
+
+        # Fetch the list of objects using authenticated access
         response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=path, Delimiter="/")
-    except botocore.exceptions.BotoCoreError as e:
-        logger.error(f"Error accessing S3 bucket '{S3_BUCKET}': {e}")
-        return jsonify({"error": "Failed to access S3 bucket"}), 500
+    except (NoCredentialsError, PartialCredentialsError):
+        # Fallback to anonymous access if credentials are not provided
+        logger.warning("No IAM credentials found. Falling back to anonymous access...")
+        s3_client = boto3.client(
+            "s3",
+            region_name=AWS_REGION,
+            config=Config(signature_version="unsigned")
+        )
+        try:
+            response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=path, Delimiter="/")
+        except BotoCoreError as e:
+            logger.error(f"Error accessing S3 bucket '{S3_BUCKET}' (anonymous access): {e}")
+            return jsonify({"error": "Failed to access S3 bucket (anonymous)"}), 500
+    except BotoCoreError as e:
+        # Handle other errors
+        logger.error(f"Error accessing S3 bucket '{S3_BUCKET}' (authenticated access): {e}")
+        return jsonify({"error": "Failed to access S3 bucket (authenticated)"}), 500
 
     # Parse directories and files from the S3 response
     directories = response.get("CommonPrefixes", [])

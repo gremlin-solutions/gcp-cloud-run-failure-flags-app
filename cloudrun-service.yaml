@@ -20,7 +20,7 @@ spec:
             - name: S3_BUCKET
               value: 'commoncrawl'
             - name: CLOUD
-              value: 'Google'
+              value: 'gcp'
             - name: FAILURE_FLAGS_ENABLED
               value: 'true'
         - name: failure-flags-sidecar

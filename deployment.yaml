@@ -32,7 +32,7 @@ spec:
             - name: S3_BUCKET
               value: "commoncrawl"
             - name: CLOUD
-              value: "Amazon"
+              value: "aws"
             - name: FAILURE_FLAGS_ENABLED
               value: "true"
           readinessProbe:
@@ -44,7 +44,7 @@ spec:
             failureThreshold: 2
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /liveness
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 5
