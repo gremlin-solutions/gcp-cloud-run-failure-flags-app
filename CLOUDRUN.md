@@ -132,13 +132,13 @@
 3. **Verify Deployment**:
    Confirm that the service is running:
    ```bash
-   gcloud run services describe s3-failure-flags-app --format="yaml(status.conditions)" --freshness=2m
+   gcloud run services describe s3-failure-flags-app --format="yaml(status.conditions)"
    ```
 
 4. **View Logs**:
    Check the logs to ensure the service is working correctly:
    ```bash
-   gcloud logging read 'resource.labels.service_name="s3-failure-flags-app"' --limit=100
+   gcloud logging read 'resource.labels.service_name="s3-failure-flags-app"' --limit=100 --freshness=2m
    ```
 
 5. **Tail Logs**:
@@ -153,6 +153,17 @@
      sleep 5
    done
    ```
+
+6. **Grant Cloud Run Invocation Permissions**:
+   Make the Cloud Run service publicly accessible by granting the `roles/run.invoker` role to `allUsers`. This step allows anyone to invoke the service endpoint:
+   ```bash
+   gcloud run services add-iam-policy-binding s3-failure-flags-app \
+     --region=us-east1 \
+     --member="allUsers" \
+     --role="roles/run.invoker"
+   ```
+
+   **Note**: This command makes your Cloud Run service accessible to anyone with the service URL. Ensure this is acceptable for your use case.
 
 ### Reference Links
 - [Google Secret Manager](https://cloud.google.com/secret-manager/docs)
