@@ -132,7 +132,7 @@
 3. **Verify Deployment**:
    Confirm that the service is running:
    ```bash
-   gcloud run services describe s3-failure-flags-app --format="yaml(status.conditions)"
+   gcloud run services describe s3-failure-flags-app --format="yaml(status.conditions)" --freshness=2m
    ```
 
 4. **View Logs**:
@@ -147,7 +147,7 @@
    while true; do
      gcloud logging read \
        'resource.labels.service_name="s3-failure-flags-app" AND labels.container_name="failure-flags-sidecar"' \
-       --freshness=5m \
+       --freshness=2m \
        --limit=100 \
        --format="table(timestamp, severity, textPayload)"
      sleep 5
