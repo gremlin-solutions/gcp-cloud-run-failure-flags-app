@@ -198,7 +198,7 @@ def list_s3_contents(path=""):
     )
     active, impacted, experiments = failure_flag.invoke()
 
-    logger.info(f"[ListS3Contents] Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
+    logger.info(f"[ListS3Contents] Cloud: {CLOUD}, Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
 
     # Initialize the S3 client
     s3_client = boto3.client("s3")
