@@ -8,6 +8,8 @@
    gcloud secrets create gremlin-team-id --replication-policy="automatic"
    gcloud secrets create gremlin-team-certificate --replication-policy="automatic"
    gcloud secrets create gremlin-team-private-key --replication-policy="automatic"
+   gcloud secrets create aws-access-key-id --replication-policy="automatic"
+   gcloud secrets create aws-secret-access-key --replication-policy="automatic"
    ```
 
 2. **Store Values**:
@@ -16,17 +18,21 @@
    echo -n "<YOUR_TEAM_ID>" | gcloud secrets versions add gremlin-team-id --data-file=-
    gcloud secrets versions add gremlin-team-certificate --data-file=path/to/cert.pem
    gcloud secrets versions add gremlin-team-private-key --data-file=path/to/key.pem
+   echo -n "<YOUR_AWS_ACCESS_KEY_ID>" | gcloud secrets versions add aws-access-key-id --data-file=-
+   echo -n "<YOUR_AWS_SECRET_ACCESS_KEY>" | gcloud secrets versions add aws-secret-access-key --data-file=-
    ```
 
    Replace:
    - `<YOUR_TEAM_ID>` with your Gremlin Team ID.
    - `path/to/cert.pem` and `path/to/key.pem` with the paths to your Gremlin team certificate and private key files.
+   - `<YOUR_AWS_ACCESS_KEY_ID>` and `<YOUR_AWS_SECRET_ACCESS_KEY>` with your AWS credentials.
 
 3. **Grant Access to Secrets**:
    Assign the necessary permissions to the Cloud Run service account:
    ```bash
    SERVICE_ACCOUNT="<PROJECT_NUMBER>-compute@developer.gserviceaccount.com" # Replace with your project number
 
+   # Grant access to Gremlin secrets
    gcloud secrets add-iam-policy-binding gremlin-team-id \
      --member="serviceAccount:$SERVICE_ACCOUNT" \
      --role="roles/secretmanager.secretAccessor"
@@ -36,6 +42,15 @@
      --role="roles/secretmanager.secretAccessor"
 
    gcloud secrets add-iam-policy-binding gremlin-team-private-key \
+     --member="serviceAccount:$SERVICE_ACCOUNT" \
+     --role="roles/secretmanager.secretAccessor"
+
+   # Grant access to AWS credentials
+   gcloud secrets add-iam-policy-binding aws-access-key-id \
+     --member="serviceAccount:$SERVICE_ACCOUNT" \
+     --role="roles/secretmanager.secretAccessor"
+
+   gcloud secrets add-iam-policy-binding aws-secret-access-key \
      --member="serviceAccount:$SERVICE_ACCOUNT" \
      --role="roles/secretmanager.secretAccessor"
    ```
@@ -66,10 +81,22 @@
              env:
                - name: S3_BUCKET
                  value: 'commoncrawl'
+               - name: AWS_REGION
+                 value: 'us-east-1'
                - name: CLOUD
-                 value: 'Google'
+                 value: 'gcp'
                - name: FAILURE_FLAGS_ENABLED
                  value: 'true'
+               - name: AWS_ACCESS_KEY_ID
+                 valueFrom:
+                   secretKeyRef:
+                     name: aws-access-key-id
+                     key: latest
+               - name: AWS_SECRET_ACCESS_KEY
+                 valueFrom:
+                   secretKeyRef:
+                     name: aws-secret-access-key
+                     key: latest
            - name: failure-flags-sidecar
              image: gremlin/failure-flags-sidecar:latest
              env:
@@ -113,6 +140,7 @@
    ```bash
    gcloud logging read 'resource.labels.service_name="s3-failure-flags-app"' --limit=100
    ```
+
 5. **Tail Logs**:
    Tail the logs to ensure the service is working correctly:
    ```bash
@@ -125,8 +153,6 @@
      sleep 5
    done
    ```
-
----
 
 ### Reference Links
 - [Google Secret Manager](https://cloud.google.com/secret-manager/docs)

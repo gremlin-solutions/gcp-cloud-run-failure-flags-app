@@ -1,6 +1,8 @@
 import os
 import boto3
 import botocore
+from botocore.config import Config
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError, BotoCoreError
 import requests
 import logging
 from flask import Flask, jsonify, render_template
@@ -14,8 +16,10 @@ logger = logging.getLogger(__name__)
 
 # Environment Variables
 S3_BUCKET = os.getenv("S3_BUCKET", "commoncrawl")  # Default to "commoncrawl" if not set
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")  # Default to "us-east-1" if not set
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"  # Enable debug mode if "true"
 PORT = int(os.getenv("PORT", 8080))  # Default to port 8080
+CLOUD = os.getenv("CLOUD", "unknown").lower()  # Retrieve the CLOUD environment variable
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -33,8 +37,7 @@ def initialize_metadata():
     Retrieve the region and availability zone using cloud provider metadata services.
     Works for AWS and Google Cloud. Also fetches the CLOUD environment variable.
     """
-    global CLOUD, REGION, AVAILABILITY_ZONE
-    CLOUD = os.getenv("CLOUD", "unknown").lower()  # Retrieve the CLOUD environment variable
+    global REGION, AVAILABILITY_ZONE
 
     if CLOUD == "aws":
         try:
@@ -178,39 +181,35 @@ def simulate_http_response_route():
         "message": message
     }), status, headers
 
+
 @app.route("/")
 @app.route("/<path:path>")
 def list_s3_contents(path=""):
     """
     Lists objects in the specified S3 bucket path.
-    Supports both public and private buckets.
+    Includes fault injection for testing scenarios.
     """
-    logger.info(f"Processing S3 request for path: {path}")
+    failure_flag = FailureFlag(
+        name="list_s3_bucket_request",
+        labels={
+            "path": f"/{path}" if path else "/",
+            "region": REGION,
+            "availability_zone": AVAILABILITY_ZONE
+        },
+        debug=True
+    )
+    active, impacted, experiments = failure_flag.invoke()
 
+    logger.info(f"[ListS3Contents] Region: {REGION}, AZ: {AVAILABILITY_ZONE}, Active: {active}, Impacted: {impacted}, Experiments: {experiments}")
+
+    # Initialize the S3 client
+    s3_client = boto3.client("s3")
     try:
-        # Attempt to create an authenticated S3 client
-        logger.info("Attempting to access S3 bucket with IAM credentials...")
-        s3_client = boto3.client("s3", region_name=AWS_REGION)
-
-        # Fetch the list of objects using authenticated access
+        # Fetch the list of objects from the specified S3 bucket and path
         response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=path, Delimiter="/")
-    except (NoCredentialsError, PartialCredentialsError):
-        # Fallback to anonymous access if credentials are not provided
-        logger.warning("No IAM credentials found. Falling back to anonymous access...")
-        s3_client = boto3.client(
-            "s3",
-            region_name=AWS_REGION,
-            config=Config(signature_version="unsigned")
-        )
-        try:
-            response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=path, Delimiter="/")
-        except BotoCoreError as e:
-            logger.error(f"Error accessing S3 bucket '{S3_BUCKET}' (anonymous access): {e}")
-            return jsonify({"error": "Failed to access S3 bucket (anonymous)"}), 500
-    except BotoCoreError as e:
-        # Handle other errors
-        logger.error(f"Error accessing S3 bucket '{S3_BUCKET}' (authenticated access): {e}")
-        return jsonify({"error": "Failed to access S3 bucket (authenticated)"}), 500
+    except botocore.exceptions.BotoCoreError as e:
+        logger.error(f"Error accessing S3 bucket '{S3_BUCKET}': {e}")
+        return jsonify({"error": "Failed to access S3 bucket"}), 500
 
     # Parse directories and files from the S3 response
     directories = response.get("CommonPrefixes", [])
