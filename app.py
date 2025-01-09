@@ -1,8 +1,6 @@
 import os
 import boto3
 import botocore
-from botocore.config import Config
-from botocore.exceptions import NoCredentialsError, PartialCredentialsError, BotoCoreError
 import requests
 import logging
 from flask import Flask, jsonify, render_template

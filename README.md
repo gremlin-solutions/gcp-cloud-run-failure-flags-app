@@ -174,8 +174,3 @@ Replace placeholders in `gremlin-team-secret-template.yaml` and apply:
   - Missing AWS credentials: Ensure `~/.aws/credentials` is configured.
   - Sidecar errors: Verify secret values are correctly encoded.
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
-
