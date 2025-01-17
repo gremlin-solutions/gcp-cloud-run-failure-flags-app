@@ -42,7 +42,6 @@ applications:
       S3_BUCKET: "commoncrawl"            # Custom environment variables
       DEBUG_MODE: "false"
       CLOUD: "pcf"
-      PORT: "8080"
       AWS_ACCESS_KEY_ID: ((aws_access_key_id))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_access_key))
 
