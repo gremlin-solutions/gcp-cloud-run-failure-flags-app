@@ -162,3 +162,4 @@ cython_debug/
 #.idea/
 
 gremlin-team-secret.yaml
+vars.yml

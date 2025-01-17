@@ -1,6 +1,7 @@
 # Exclude sensitive files
 gremlin-team-secret.yaml
 gremlin-team-secret-template.yaml
+vars.yml
 
 # Exclude virtual environment
 venv/
