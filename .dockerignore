@@ -18,3 +18,5 @@ venv/
 *.pyc
 __pycache__/
 
+
+failure-flags-sidecar

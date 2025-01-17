@@ -163,3 +163,4 @@ cython_debug/
 
 gremlin-team-secret.yaml
 vars.yml
+failure-flags-sidecar
