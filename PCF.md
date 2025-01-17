@@ -12,7 +12,6 @@
    ```
 3. **Copy** the sidecar binary:
    ```bash
-   mkdir -p dist
    docker cp failure-flags-extract:/failure-flags-sidecar failure-flags-sidecar
    ```
 4. **Remove** the container and **make executable**:
