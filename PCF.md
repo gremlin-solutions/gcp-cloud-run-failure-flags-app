@@ -27,10 +27,34 @@
    docker rm failure-flags-extract
    chmod +x failure-flags-sidecar
    ```
+## 2. Create `vars.yml`
 
-## 2. Configure `pcf-manifest.yml`
+The `manifest.yml` uses `(( placeholder ))` syntax to inject secrets, you need to create a `vars.yml` file locally. This file **should not** be committed to source control, as it contains sensitive information.
 
-Below is an example `pcf-manifest.yml` for deploying your Flask app with the Python buildpack, plus the Gremlin sidecar. Adjust memory, paths, and environment variables as needed:
+Below is an example of what `vars.yml` could look like:
+
+```yaml
+aws_access_key_id: "YOUR_ACCESS_KEY_ID"
+aws_secret_access_key: "YOUR_SECRET_ACCESS_KEY"
+
+gremlin_team_id: "YOUR_GREMLIN_TEAM_ID"
+gremlin_team_certificate: |-
+  -----BEGIN CERTIFICATE-----
+  ...
+  -----END CERTIFICATE-----
+gremlin_team_private_key: |-
+  -----BEGIN EC PRIVATE KEY-----
+  ...
+  -----END EC PRIVATE KEY-----
+```
+
+1. **Create** a file named `vars.yml` in the same directory as your `manifest.yml`.
+2. **Replace** the placeholder values (`YOUR_ACCESS_KEY_ID`, `YOUR_SECRET_ACCESS_KEY`, etc.) with your real credentials.
+3. **Do not** commit `vars.yml` to your git repository. It’s recommended to add `vars.yml` to `.gitignore`.
+
+## 3. Configure `manifest.yml`
+
+Below is an example `manifest.yml` for deploying your Flask app with the Python buildpack, plus the Gremlin sidecar. Adjust memory, paths, and environment variables as needed:
 
 ```yaml
 ---
@@ -69,11 +93,11 @@ applications:
         command: "./failure-flags-sidecar"  # Run Gremlin sidecar
 ```
 
-## 3. Push to Cloud Foundry
+## 4. Push to Cloud Foundry
 
 From your project directory:
 ```bash
-cf push -f pcf-manifest.yml
+cf push --vars-file vars.yml
 ```
 
 - The Python buildpack installs dependencies (from `requirements.txt`: `flask`, `boto3`, `requests`, `failureflags`).
