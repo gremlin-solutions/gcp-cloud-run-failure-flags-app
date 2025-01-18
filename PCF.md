@@ -35,17 +35,17 @@ Below is an example `pcf-manifest.yml` for deploying your Flask app with the Pyt
 ```yaml
 ---
 applications:
-  - name: s3-failure-flags-app            # App name in Cloud Foundry
-    memory: 512M                          # Memory allocated for the container
+  - name: s3-failure-flags-app            # App name in CF
+    memory: 512M                          # Memory for the container
     disk_quota: 1G                        # Disk space for the container
-    instances: 1                          # Number of instances to run
+    instances: 1                          # Number of instances
 
     buildpacks:
       - python_buildpack                  # Use Python buildpack for Flask
 
-    path: .                                # Push contents of current directory
+    path: .                               # Push contents of current directory
 
-    command: python app.py                # Launch the Flask app (adjust as needed)
+    command: null                         # Let the buildpack detect and use your Procfile
 
     env:
       S3_BUCKET: "commoncrawl"            # Custom environment variables
@@ -53,14 +53,20 @@ applications:
       CLOUD: "pcf"
       AWS_ACCESS_KEY_ID: ((aws_access_key_id))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_access_key))
-      # Add any other environment variables as needed
+      FAILURE_FLAGS_ENABLED: "true"
+      GREMLIN_SIDECAR_ENABLED: "true"
+      GREMLIN_TEAM_ID: ((gremlin_team_id))
+      GREMLIN_TEAM_CERTIFICATE: ((gremlin_team_certificate))
+      GREMLIN_TEAM_PRIVATE_KEY: ((gremlin_team_private_key))
+      GREMLIN_DEBUG: "true"
+      SERVICE_NAME: "s3-failure-flags-app"
 
     sidecars:
       - name: gremlin-sidecar
-        process_types: ["web"]            # Runs in the same container as your app
-        memory: 256M                      # Memory allocated to the sidecar
-        disk_quota: 256M                  # Disk space for the sidecar
-        command: "./failure-flags-sidecar"  # Execute the Gremlin sidecar binary
+        process_types: ["web"]            # Attach sidecar to 'web' process
+        memory: 256M
+        disk_quota: 256M
+        command: "./failure-flags-sidecar"  # Run Gremlin sidecar
 ```
 
 ## 3. Push to Cloud Foundry
