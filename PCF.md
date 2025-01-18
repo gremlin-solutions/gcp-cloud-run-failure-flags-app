@@ -61,14 +61,6 @@ applications:
         memory: 256M                      # Memory allocated to the sidecar
         disk_quota: 256M                  # Disk space for the sidecar
         command: "./failure-flags-sidecar"  # Execute the Gremlin sidecar binary
-        env:
-          GREMLIN_SIDECAR_ENABLED: "true"
-          GREMLIN_SIDECAR_PORT: 5032
-          GREMLIN_TEAM_ID: ((gremlin_team_id))
-          GREMLIN_TEAM_CERTIFICATE: ((gremlin_team_certificate))
-          GREMLIN_TEAM_PRIVATE_KEY: ((gremlin_team_private_key))
-          GREMLIN_DEBUG: "true"
-          SERVICE_NAME: "s3-failure-flags-app"
 ```
 
 ## 3. Push to Cloud Foundry
