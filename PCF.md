@@ -103,3 +103,7 @@ cf push --vars-file vars.yml
 - The Python buildpack installs dependencies (from `requirements.txt`: `flask`, `boto3`, `requests`, `failureflags`).
 - Both the Flask app and the Gremlin sidecar run in the same container, allowing local communication (`localhost:5032`).
 
+## Reference
+
+- [Pushing apps with sidecar processes](https://docs.cloudfoundry.org/devguide/sidecars.html)
+- [Attribute Reference - sidecars](https://docs.cloudfoundry.org/devguide/deploy-apps/manifest-attributes.html#sidecars)
