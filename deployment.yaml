@@ -16,11 +16,13 @@ spec:
     spec:
       affinity:
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app: s3-failure-flags-app
-              topologyKey: topology.kubernetes.io/zone
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: s3-failure-flags-app
+                topologyKey: topology.kubernetes.io/zone
       containers:
         - name: app-container
           image: jsabo/s3-failure-flags-app:latest
