@@ -5,7 +5,7 @@ metadata:
   labels:
     app: s3-failure-flags-app
 spec:
-  replicas: 1
+  replicas: 4
   selector:
     matchLabels:
       app: s3-failure-flags-app
@@ -15,6 +15,15 @@ spec:
         app: s3-failure-flags-app
     spec:
       affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - us-east-1a
+                      - us-east-1b
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
@@ -26,7 +35,6 @@ spec:
       containers:
         - name: app-container
           image: jsabo/s3-failure-flags-app:latest
-          #image: <<YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -75,3 +83,4 @@ spec:
               value: "true"
             - name: SERVICE_NAME
               value: "s3-failure-flags-app"
+
