@@ -24,14 +24,13 @@ spec:
                     values:
                       - us-east-1a
                       - us-east-1b
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                labelSelector:
-                  matchLabels:
-                    app: s3-failure-flags-app
-                topologyKey: topology.kubernetes.io/zone
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: s3-failure-flags-app
       containers:
         - name: app-container
           image: jsabo/s3-failure-flags-app:latest
