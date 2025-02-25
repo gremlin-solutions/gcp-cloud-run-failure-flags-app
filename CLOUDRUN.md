@@ -1,4 +1,4 @@
-## Deploy to Cloud Run
+## Deploy to Google Cloud Run
 
 ### Instructions to Create Secrets
 
