@@ -158,3 +158,4 @@ az containerapp revision list --resource-group myResourceGroup --name s3-failure
 - [Azure Container Apps Documentation](https://learn.microsoft.com/azure/container-apps)
 - [Manage Secrets in Azure Container Apps](https://learn.microsoft.com/azure/container-apps/secret-management)
 - [Azure CLI Container Apps Commands](https://learn.microsoft.com/cli/azure/containerapp)
+- [Configure a sidecar container for custom container in Azure App Service](https://learn.microsoft.com/en-us/azure/app-service/tutorial-custom-container-sidecar) 
