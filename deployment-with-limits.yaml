@@ -5,7 +5,7 @@ metadata:
   labels:
     app: s3-failure-flags-app
 spec:
-  replicas: 2
+  replicas: 4
   selector:
     matchLabels:
       app: s3-failure-flags-app
@@ -67,6 +67,13 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
             failureThreshold: 2
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "200m"
+              memory: "512Mi"
         - name: gremlin-sidecar
           image: gremlin/failure-flags-sidecar:latest
           env:
@@ -91,4 +98,11 @@ spec:
               value: "true"
             - name: SERVICE_NAME
               value: "s3-failure-flags-app"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
 
