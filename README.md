@@ -1,176 +1,173 @@
-# S3 Failure Flags App
+## Deploy to Google Cloud Run
 
-## Overview
+### Instructions to Create Secrets
 
-The S3 Failure Flags App demonstrates fault injection using Gremlin Failure Flags in a Flask-based S3 file lister. It is designed to validate application resilience by simulating various fault scenarios, including network delays, application exceptions, and response modifications. This app is ideal for developers, DevOps engineers, and Site Reliability Engineers (SREs) testing cloud-native applications.
-
-## Features
-
-- **S3 Bucket Interaction:**
-
-  - Lists and navigates the contents of an S3 bucket.
-  - Supports both public and private buckets.
-
-- **Fault Injection via Gremlin Failure Flags:**
-
-  - Simulates latency, exceptions, network errors, and response modifications.
-  - Combine multiple fault types for complex scenarios.
-
-- **Kubernetes-Ready:**
-
-  - Deploys with Gremlin Sidecar for seamless integration.
-  - Includes health and readiness probes.
-
-## Prerequisites
-
-| Requirement         | Details                          |
-| ------------------- | -------------------------------- |
-| **Python**          | Version 3.9 or higher            |
-| **Docker**          | Installed and configured         |
-| **Kubernetes**      | Cluster with `kubectl` access    |
-| **AWS Credentials** | For accessing private S3 buckets |
-| **Gremlin Account** | With Failure Flags enabled       |
-
-## Getting Started
-
-### Clone the Repository
-
-```bash
-git clone git@github.com:jsabo/s3-failure-flags-app.git
-cd s3-failure-flags-app
-```
-
-### Local Development
-
-1. **Create and Activate Virtual Environment:**
-
+1. **Create Secrets**:
+   Use the following commands to create secrets in **Google Secret Manager**:
    ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   gcloud secrets create gremlin-team-id --replication-policy="automatic"
+   gcloud secrets create gremlin-team-certificate --replication-policy="automatic"
+   gcloud secrets create gremlin-team-private-key --replication-policy="automatic"
+   gcloud secrets create aws-access-key-id --replication-policy="automatic"
+   gcloud secrets create aws-secret-access-key --replication-policy="automatic"
    ```
 
-2. **Install Dependencies:**
-
+2. **Store Values**:
+   Add your values to the secrets:
    ```bash
-   pip install -r requirements.txt
+   echo -n "<YOUR_TEAM_ID>" | gcloud secrets versions add gremlin-team-id --data-file=-
+   gcloud secrets versions add gremlin-team-certificate --data-file=path/to/cert.pem
+   gcloud secrets versions add gremlin-team-private-key --data-file=path/to/key.pem
+   echo -n "<YOUR_AWS_ACCESS_KEY_ID>" | gcloud secrets versions add aws-access-key-id --data-file=-
+   echo -n "<YOUR_AWS_SECRET_ACCESS_KEY>" | gcloud secrets versions add aws-secret-access-key --data-file=-
    ```
 
-3. **Set Environment Variables:**
+   Replace:
+   - `<YOUR_TEAM_ID>` with your Gremlin Team ID.
+   - `path/to/cert.pem` and `path/to/key.pem` with the paths to your Gremlin team certificate and private key files.
+   - `<YOUR_AWS_ACCESS_KEY_ID>` and `<YOUR_AWS_SECRET_ACCESS_KEY>` with your AWS credentials.
 
+3. **Grant Access to Secrets**:
+   Assign the necessary permissions to the Cloud Run service account:
    ```bash
-   export S3_BUCKET=commoncrawl
-   export FAILURE_FLAGS_ENABLED=true
+   SERVICE_ACCOUNT="<PROJECT_NUMBER>-compute@developer.gserviceaccount.com" # Replace with your project number
+
+   # Grant access to Gremlin secrets
+   gcloud secrets add-iam-policy-binding gremlin-team-id \
+     --member="serviceAccount:$SERVICE_ACCOUNT" \
+     --role="roles/secretmanager.secretAccessor"
+
+   gcloud secrets add-iam-policy-binding gremlin-team-certificate \
+     --member="serviceAccount:$SERVICE_ACCOUNT" \
+     --role="roles/secretmanager.secretAccessor"
+
+   gcloud secrets add-iam-policy-binding gremlin-team-private-key \
+     --member="serviceAccount:$SERVICE_ACCOUNT" \
+     --role="roles/secretmanager.secretAccessor"
+
+   # Grant access to AWS credentials
+   gcloud secrets add-iam-policy-binding aws-access-key-id \
+     --member="serviceAccount:$SERVICE_ACCOUNT" \
+     --role="roles/secretmanager.secretAccessor"
+
+   gcloud secrets add-iam-policy-binding aws-secret-access-key \
+     --member="serviceAccount:$SERVICE_ACCOUNT" \
+     --role="roles/secretmanager.secretAccessor"
    ```
 
-   | Variable                | Description                          | Default Value |
-   | ----------------------- | ------------------------------------ | ------------- |
-   | `S3_BUCKET`             | S3 bucket to access                  | `commoncrawl` |
-   | `FAILURE_FLAGS_ENABLED` | Enable fault injection functionality | `true`        |
+---
 
-4. **Run the Application:**
+### Deploy Your Application
 
+1. **Create a Deployment YAML File**:
+   Example `cloudrun-service.yaml`:
+   ```yaml
+   apiVersion: serving.knative.dev/v1
+   kind: Service
+   metadata:
+     name: 's3-failure-flags-app'
+   spec:
+     template:
+       metadata:
+         annotations:
+           autoscaling.knative.dev/maxScale: '1'
+           run.googleapis.com/execution-environment: 'gen1'
+       spec:
+         containers:
+           - name: 'app-container'
+             image: 'jsabo/s3-failure-flags-app:latest'
+             ports:
+               - containerPort: 8080
+             env:
+               - name: S3_BUCKET
+                 value: 'commoncrawl'
+               - name: AWS_REGION
+                 value: 'us-east-1'
+               - name: CLOUD
+                 value: 'gcp'
+               - name: FAILURE_FLAGS_ENABLED
+                 value: 'true'
+               - name: AWS_ACCESS_KEY_ID
+                 valueFrom:
+                   secretKeyRef:
+                     name: aws-access-key-id
+                     key: latest
+               - name: AWS_SECRET_ACCESS_KEY
+                 valueFrom:
+                   secretKeyRef:
+                     name: aws-secret-access-key
+                     key: latest
+           - name: failure-flags-sidecar
+             image: gremlin/failure-flags-sidecar:latest
+             env:
+               - name: GREMLIN_SIDECAR_ENABLED
+                 value: 'true'
+               - name: GREMLIN_TEAM_ID
+                 valueFrom:
+                   secretKeyRef:
+                     name: gremlin-team-id
+                     key: latest
+               - name: GREMLIN_TEAM_CERTIFICATE
+                 valueFrom:
+                   secretKeyRef:
+                     name: gremlin-team-certificate
+                     key: latest
+               - name: GREMLIN_TEAM_PRIVATE_KEY
+                 valueFrom:
+                   secretKeyRef:
+                     name: gremlin-team-private-key
+                     key: latest
+               - name: GREMLIN_DEBUG
+                 value: 'true'
+               - name: SERVICE_NAME
+                 value: 's3-failure-flags-app'
+   ```
+
+2. **Deploy to Cloud Run**:
+   Deploy the service using the YAML file:
    ```bash
-   python app.py
+   gcloud run services replace cloudrun-service.yaml
    ```
 
-5. **Access the Application:**
-
-   Open your browser and navigate to:
-
-   ```
-   http://127.0.0.1:8080
-   ```
-
-### Docker Setup
-
-1. **Build the Docker Image:**
-
+3. **Verify Deployment**:
+   Confirm that the service is running:
    ```bash
-   docker build --platform linux/amd64 -t <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest .
+   gcloud run services describe s3-failure-flags-app --format="yaml(status.conditions)"
    ```
 
-2. **Push to Docker Repository:**
-
+4. **View Logs**:
+   Check the logs to ensure the service is working correctly:
    ```bash
-   docker push <YOUR_DOCKER_REPO>/s3-failure-flags-app:latest
+   gcloud logging read 'resource.labels.service_name="s3-failure-flags-app"' --limit=100 --freshness=2m
    ```
 
-## Kubernetes Deployment
-
-### Create Gremlin Secret
-
-1. **Base64 Encode Credentials:**
-
+5. **Tail Logs**:
+   Tail the logs to ensure the service is working correctly:
    ```bash
-   TEAM_ID="<YOUR_TEAM_ID>"
-   BASE64_TEAM_ID=$(echo -n "$TEAM_ID" | base64)
-   BASE64_CERT=$(cat path/to/cert.pem | base64 | tr -d '\n')
-   BASE64_PRIV_KEY=$(cat path/to/key.pem | base64 | tr -d '\n')
+   while true; do
+     gcloud logging read \
+       'resource.labels.service_name="s3-failure-flags-app" AND labels.container_name="failure-flags-sidecar"' \
+       --freshness=2m \
+       --limit=100 \
+       --format="table(timestamp, severity, textPayload)"
+     sleep 5
+   done
    ```
 
-2. **Update Secret Template:**
-
-Replace placeholders in `gremlin-team-secret-template.yaml` and apply:
-
+6. **Grant Cloud Run Invocation Permissions**:
+   Make the Cloud Run service publicly accessible by granting the `roles/run.invoker` role to `allUsers`. This step allows anyone to invoke the service endpoint:
    ```bash
-   sed -e "s|<BASE64_ENCODED_TEAM_ID>|$BASE64_TEAM_ID|g" \
-       -e "s|<BASE64_ENCODED_TEAM_CERTIFICATE>|$BASE64_CERT|g" \
-       -e "s|<BASE64_ENCODED_TEAM_PRIVATE_KEY>|$BASE64_PRIV_KEY|g" \
-       gremlin-team-secret-template.yaml > gremlin-team-secret.yaml
-   
-   kubectl apply -f gremlin-team-secret.yaml
+   gcloud run services add-iam-policy-binding s3-failure-flags-app \
+     --region=us-east1 \
+     --member="allUsers" \
+     --role="roles/run.invoker"
    ```
 
-### Deploy Application
+   **Note**: This command makes your Cloud Run service accessible to anyone with the service URL. Ensure this is acceptable for your use case.
 
-1. **Apply Kubernetes Resources:**
-
-   ```bash
-   kubectl apply -f deployment.yaml
-   kubectl apply -f service.yaml
-   kubectl apply -f ingress.yaml
-   ```
-
-2. **Verify Deployment:**
-
-   ```bash
-   kubectl get pods
-   ```
-
-## Fault Injection Examples
-
-| Fault Type              | Name                                | Selector                                                        | Effect Example                                                                                                                                          |
-| ----------------------- | ----------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Network Latency         | Simulate Latency                    | `{ "path": ["/latency-test"] }`                                 | `{ "latency": { "ms": 5000 } }`                                                                                                                         |
-| Network Latency         | Inject Random Latency               | `{ "path": ["/simulate-jitter"] }`                              | `{ "latency": { "ms": 2000, "jitter": 500 } }`                                                                                                          |
-| Application Error       | Inject Built-in Exception           | `{ "path": ["/inject-exception"] }`                             | `{ "exception": { "className": "ValueError", "message": "Injected ValueError", "module": "builtins" } }`                                                |
-| Network Error           | Simulate Timeout on Socket          | `{ "path": ["/"] }`                                             | `{ "exception": { "className": "timeout", "message": "Socket operation timed out", "module": "socket" } }`                                              |
-| Network Error           | Simulate Connection Error           | `{ "path": ["/simulate-blackhole"] }`                           | `{ "exception": { "className": "S3TransferFailedError", "message": "Simulated connection error during S3 transfer", "module": "boto3.exceptions" } }`   |
-| Combined Faults         | Simulate Latency with Validation Error | `{ "path": ["/inject-latency-exception"] }`                    | `{ "latency": { "ms": 2000 }, "exception": { "className": "ValidationError", "message": "Simulated latency and validation error", "module": "botocore.exceptions" } }` |
-| Application Error       | Inject Custom Application Exception | `{ "path": ["/inject-custom-exception"] }`                      | `{ "exception": { "className": "CustomAppException", "message": "Custom application exception", "module": "__main__" } }`                               |
-| Data Integrity          | Simulate Corrupted Response Data    | `{ "path": ["/simulate-data-corruption"] }`                     | `{ "data": { "CorruptedData": true } }`                                                                                                                 |
-| Availability Zone Fault | Simulate AZ-Specific Latency        | `{ "path": ["/liveness"], "availability_zone": ["us-east-1a"] }` | `{ "latency": { "ms": 60000 } }`                                                                                                                        |
-| Region Fault            | Simulate Region-Specific Latency    | `{ "path": ["/liveness"], "region": ["us-east-1"] }`             | `{ "latency": { "ms": 60000 } }`                                                                                                                        |
-| Service Degradation     | Simulate Readiness Probe Latency    | `{ "path": ["/readiness"] }`                                    | `{ "latency": { "ms": 60000 } }`                                                                                                                        |
-| **Custom Behavior**: Modify HTTP Response | Simulate AWS Rate Limiting (429)    | `{ "path": ["/simulate-http-response"] }`                       | `{ "httpStatus": { "statusCode": 429, "message": "Too Many Requests", "retryAfter": 5 } }`                                                              |
-| **Custom Behavior**: Modify HTTP Response | Simulate Service Unavailability (503) | `{ "path": ["/simulate-http-response"] }`                       | `{ "httpStatus": { "statusCode": 503, "message": "Service Unavailable", "retryAfter": 30 } }`                                                           |
-
-## Troubleshooting
-
-- **Application Logs:**
-
-  ```bash
-  kubectl logs -l app=s3-failure-flags-app -c app-container
-  ```
-
-- **Sidecar Logs:**
-
-  ```bash
-  kubectl logs -l app=s3-failure-flags-app -c gremlin-sidecar
-  ```
-
-- **Common Issues:**
-
-  - Missing AWS credentials: Ensure `~/.aws/credentials` is configured.
-  - Sidecar errors: Verify secret values are correctly encoded.
+### Reference Links
+- [Google Secret Manager](https://cloud.google.com/secret-manager/docs)
+- [Deploying to Cloud Run with YAML](https://cloud.google.com/run/docs/deploying#yaml)
+- [Managing Cloud Run Secrets](https://cloud.google.com/run/docs/configuring/secrets)
+- [Gremlin Documentation](https://www.gremlin.com/docs/)
 
